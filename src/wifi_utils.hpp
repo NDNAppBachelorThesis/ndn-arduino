@@ -33,7 +33,6 @@ void enableAndConnectToWifi() {
     // Wait for connection to start
     delay(1000);
     std::cout << "[WIFI] Connected to wifi network " << WIFI_SSID << std::endl;
-
 }
 
 #endif

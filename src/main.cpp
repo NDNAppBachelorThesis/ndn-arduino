@@ -1,16 +1,16 @@
 #include <esp8266ndn.h>
-#include <iostream>
-
-#include "TestServer.h"
 #include "wifi_utils.hpp"
+#include "servers/TempHumidServer.h"
+#include "sensors/dht11.h"
+
+#define DHTPIN 16
 
 ndnph::StaticRegion<1024> region;
 
 std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
-const char *PREFIX = "/esp/test";
-TestServer server(ndnph::Name::parse(region, PREFIX), face);
+TempHumidServer server(face, ndnph::Name::parse(region, "/esp/2/data"), DHTPIN);
 
 
 void setup() {
@@ -20,25 +20,16 @@ void setup() {
 
     enableAndConnectToWifi();
 
-    bool ok = transport.beginListen(WiFi.localIP());
+    bool ok = transport.beginListen();
     if (!ok) {
-        Serial.println(F("UDP multicast initialization failed"));
+        Serial.println(F("UDP unicast transport initialization failed"));
         ESP.restart();
     }
 
     Serial.print(F("nfdc face create udp4://"));
     Serial.print(WiFi.localIP());
     Serial.println(F(":6363"));
-
-    Serial.println(F("nfdc route add /example/esp8266/udp [UDP-UNICAST-FACEID]"));
-    Serial.println(F("nfdc route add /example/esp8266/udpm [UDP-MCAST-FACEID]"));
     Serial.println();
-    Serial.println(F("Then you can ping:"));
-    Serial.println(F("ndnping /example/esp8266/ether"));
-    Serial.println(F("ndnping /example/esp8266/udp"));
-    Serial.println(F("ndnping /example/esp8266/udpm"));
-    Serial.println();
-
 }
 
 void loop() {
