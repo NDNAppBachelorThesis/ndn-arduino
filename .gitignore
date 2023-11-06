@@ -1,2 +1,5 @@
 .pio
 .idea
+
+# Password files
+wifi.ini

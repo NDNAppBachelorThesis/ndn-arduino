@@ -1,8 +1,16 @@
 #include <WiFi.h>
 #include <esp8266ndn.h>
 
-//const char *WIFI_SSID = "ssid";
-//const char *WIFI_PASS = "pass";
+#ifndef WLAN_SSID
+#define WLAN_SSID "ssid"
+#endif
+
+#ifndef WLAN_PASSWORD
+#define WLAN_PASSWORD "password"
+#endif
+
+const char *WIFI_SSID = WLAN_SSID;
+const char *WIFI_PASS = WLAN_PASSWORD;
 
 ndnph::StaticRegion<1024> region;
 
