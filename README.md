@@ -23,4 +23,5 @@ To show all routes run ``nfdc route list``
 
 # Pin Layout
 See [this link](https://raw.githubusercontent.com/AchimPieters/esp32-homekit-camera/master/Images/ESP32-38%20PIN-DEVBOARD.png)
+The [corresponding blog](https://www.studiopieters.nl/esp32-pinout/) includes some tips on which pins to use
 for the ESP-WROOM-32

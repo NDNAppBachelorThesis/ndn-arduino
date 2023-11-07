@@ -5,25 +5,7 @@
 #include "TempHumidServer.h"
 #include "iostream"
 #include <ndnph/tlv/value.hpp>
-#include <sstream>
-
-
-void floatToByte(byte* buf, float value) {
-    long l = *(long*) &value;
-
-    for (int i = 0; i < 4; i++) {
-        buf[i] = (l >> (8 * i)) & 0xFF;
-    }
-
-}
-
-void doubleToByte(byte* buf, double value) {
-    long long l = *(long long*) &value;
-
-    for (int i = 0; i < 8; i++) {
-        buf[i] = (l >> (8 * i)) & 0xFF;
-    }
-}
+#include "utils/unit_conversions.h"
 
 
 bool TempHumidServer::processInterest(ndnph::Interest interest) {

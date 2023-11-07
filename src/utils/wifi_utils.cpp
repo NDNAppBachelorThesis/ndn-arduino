@@ -1,16 +1,4 @@
-#ifndef WIFI_UTILS_HPP
-#define WIFI_UTILS_HPP
-
-#include <WiFi.h>
-#include <iostream>
-
-#ifndef WLAN_SSID
-#define WLAN_SSID "ssid"
-#endif
-
-#ifndef WLAN_PASSWORD
-#define WLAN_PASSWORD "password"
-#endif
+#include "wifi_utils.h"
 
 /**
  * Enabled and connects to a WiFi network
@@ -34,5 +22,3 @@ void enableAndConnectToWifi() {
     delay(1000);
     std::cout << "[WIFI] Connected to wifi network " << WIFI_SSID << std::endl;
 }
-
-#endif
