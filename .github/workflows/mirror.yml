@@ -1,11 +1,11 @@
 name: Mirroring
 
-on: [push, delete]
+on: [ push, delete ]
 
 jobs:
-  to_gitlab:
+  Mirror_to_Gitlab:
     runs-on: ubuntu-latest
-    steps:                                              # <-- must use actions/checkout before mirroring!
+    steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -13,6 +13,6 @@ jobs:
         with:
           target_repo_url:
             git@git.itm.uni-luebeck.de:arne.matthes/ndn-arduino.git
-          ssh_private_key:                              # <-- use 'secrets' to pass credential information.
+          ssh_private_key:
             ${{ secrets.GITLAB_SSH_PRIVATE_KEY }}
 
