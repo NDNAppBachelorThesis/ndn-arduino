@@ -3,7 +3,8 @@ name: Mirroring
 on: [ push, delete ]
 
 jobs:
-  Mirror_to_Gitlab:
+  to_gitlab:
+    name: "Mirror to Gitlab"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
