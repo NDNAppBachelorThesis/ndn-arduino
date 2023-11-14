@@ -21,7 +21,7 @@ public:
 private:
     bool processInterest(ndnph::Interest interest) override;
 
-    bool processData(ndnph::Data data) override;;
+    bool processData(ndnph::Data data) override;
 
     ndnph::Name namePrefix;
     const ndnph::PrivateKey &m_signer;
