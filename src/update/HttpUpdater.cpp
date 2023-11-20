@@ -28,7 +28,7 @@ void HttpUpdater::setup() {
         HTTPUpload& upload = server.upload();
         if (upload.status == UPLOAD_FILE_START) {
             std::cout << "---------- Update starting ----------" << std::endl;
-            std::cout << "Filename : "<< upload.filename << std::endl;
+            Serial.printf("Filename : %s\n", upload.filename.c_str());
             if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
                 Update.printError(Serial);
             }

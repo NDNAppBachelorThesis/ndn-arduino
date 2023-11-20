@@ -5,12 +5,12 @@
 
 
 # Configure WIFI SSID / password
-To prevent confidential WIFI credentials from getting pushed to github, you have to create a file called ``wifi.ini`` 
+To prevent confidential WIFI credentials from getting pushed to github, you have to create a file called ``wifiClient.ini`` 
 in the root directory, which contains the following text
 ```ini
-[wifi]
-ssid = your-wifi-ssid
-password = your-super-secret-wifi-password
+[wifiClient]
+ssid = your-wifiClient-ssid
+password = your-super-secret-wifiClient-password
 ```
 
 

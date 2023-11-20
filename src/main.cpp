@@ -8,7 +8,8 @@
 #include "update/HttpUpdater.hpp"
 #include <HTTPClient.h>
 #include <sstream>
-
+#include "libs/ArduinoJson.h"
+#include "utils/WifiClientFixed.h"
 
 
 #define DHT_SENSOR_PIN 16
@@ -17,11 +18,15 @@
 #define MGMT_URL "http://192.168.178.119:8000"
 
 
+WifiClientFixed* wifiClient = new WifiClientFixed();
+
+
 ndnph::StaticRegion<1024> region;
 
 std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
+
 
 
 #if SERVER_TYPE == 0
@@ -39,6 +44,19 @@ DiscoveryClient discoveryClient(face, ndnph::Name::parse(region, "/esp/discovery
 HttpUpdater httpUpdater;
 
 
+/**
+ * The Function for the IpAddress class just doesn't work
+ * @return
+ */
+std::string ipToString() {
+    auto ip = WiFi.localIP();
+    std::stringstream ss;
+    ss << (int)ip[0] << "." << (int) ip[1] << "." << (int) ip[2] << "." << (int) ip[3];
+
+    return ss.str();
+}
+
+
 void sendPing() {
     auto deviceId = ESP.getEfuseMac();
     HTTPClient http;
@@ -47,10 +65,13 @@ void sendPing() {
     ss << "/ping/";
     ss << deviceId;
 
-    http.begin(ss.str().c_str());
+    http.begin(*wifiClient, ss.str().c_str());
     int responseCode = http.POST("PING");
 
-    std::cout << "Ping returned with status code " << responseCode << std::endl;
+    if (responseCode != 200) {
+        std::cerr << "Ping returned status code " << responseCode << std::endl;
+    }
+
     http.end();
 }
 
@@ -61,19 +82,48 @@ void registerBoard() {
     ss << MGMT_URL;
     ss << "/register";
 
-    auto ip = WiFi.localIP();
-    std::stringstream ssReq;
-    ssReq << R"({"deviceId":)";
-    ssReq << deviceId;
-    ssReq << R"(, "ip": ")";
-    ssReq << (int)ip[0] << "." << (int) ip[1] << "." << (int) ip[2] << "." << (int) ip[3];
-    ssReq << R"("})";
+    StaticJsonDocument<200> doc;
+    doc["deviceId"] = deviceId;
+    doc["ip"] = ipToString();
+    uint8_t jsonBuffer[200];
+    auto serializedSize = serializeJson(doc, jsonBuffer, 200);
 
-    http.begin(ss.str().c_str());
-    int responseCode = http.POST(ssReq.str().c_str());
+    http.begin(*wifiClient, ss.str().c_str());
+    int responseCode = http.POST(jsonBuffer, serializedSize);
 
-    std::cout << "Register returned with status code " << responseCode << std::endl;
+    if (responseCode != 200) {
+        std::cerr << "Register returned status code " << responseCode << ". Restarting..." << std::endl;
+        http.end();
+        ESP.restart();
+    }
+
+    std::cout << "Successfully registered this board with ID " << deviceId << " and IP " << ipToString() << std::endl;
     http.end();
+}
+
+std::string getNFDIP() {
+    HTTPClient http;
+    http.begin(*wifiClient, (std::string(MGMT_URL) + std::string("/settingsApi")).c_str());
+
+    int responseCode = http.GET();
+
+    if (responseCode != 200) {
+        std::cerr << "Getting NFD IP from management server returned status " << responseCode << ". Restarting..." << std::endl;
+        http.end();
+        ESP.restart();
+    }
+
+    StaticJsonDocument<200> doc;
+    auto error = deserializeJson(doc, http.getString());
+
+    if (error) {
+        std::cerr << "Couldn't fetch NFD IP from server. Restarting..." << std::endl;
+        http.end();
+        ESP.restart();
+    }
+
+    http.end();
+    return std::string(doc["ndfIp"].as<std::string>());
 }
 
 
@@ -103,11 +153,19 @@ void setup() {
     WiFiClientSecure fchSocketClient;
     fchSocketClient.setInsecure();
 
-    auto ip = IPAddress(192, 168, 178, 119);
-    if (!transport.beginTunnel(ip)) {
-        std::cout << "UDP tunnel connection failed" << std::endl;
+    auto nfdIp = getNFDIP();
+    auto ip = IPAddress();
+
+    if (!ip.fromString(nfdIp.c_str())) {
+        std::cerr << "Failed to parse NFD ip" << std::endl;
+        ESP.restart();
+    } else {
+        if (!transport.beginTunnel(ip)) {
+            std::cerr << "UDP tunnel connection failed" << std::endl;
+        } else {
+            std::cout << "Tunnel successful" << std::endl;
+        }
     }
-    std::cout << "Tunnel successful" << std::endl;
 
     httpUpdater.setup();
     registerBoard();
