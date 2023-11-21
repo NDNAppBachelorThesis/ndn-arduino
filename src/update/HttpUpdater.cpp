@@ -3,14 +3,24 @@
 //
 
 #include "HttpUpdater.hpp"
+#include "utils/Logger.h"
 #include <iostream>
+#include <sstream>
 
 
 WebServer HttpUpdater::server;  // Allocate memory for static variable
 
 
 void HttpUpdater::setup() {
-    preferences.begin("ndn", false);
+    // Return logs
+    server.on("/log", HTTP_GET, []() {
+        server.sendHeader("Connection", "close");
+        std::stringstream ss;
+        for (auto& line : Logger::instance.buffer) {
+            ss << line;
+        }
+        server.send(200, "text/plain", ss.str().c_str());
+    });
 
     // Must answer to allow CORS requests
     server.on("/update", HTTP_OPTIONS, []() {
@@ -21,7 +31,6 @@ void HttpUpdater::setup() {
     // handling uploading firmware file
     server.on("/update", HTTP_POST, []() {
         server.sendHeader("Connection", "close");
-        server.sendHeader("Access-Control-Allow-Origin", "*");
         server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
         ESP.restart();
     }, []() {
@@ -40,7 +49,7 @@ void HttpUpdater::setup() {
         } else if (upload.status == UPLOAD_FILE_END) {
             if (Update.end(true)) { //true to set the size to the current progress
                 std::cout << "Rebooting: true" << std::endl;
-                std::cout << "---------- Update Successful ----------";
+                std::cout << "---------- Update Successful ----------" << std::endl;
             } else {
                 Update.printError(Serial);
             }

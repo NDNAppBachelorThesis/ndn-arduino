@@ -7,7 +7,6 @@
 
 #include <WebServer.h>
 #include <Update.h>
-#include "Preferences.h"
 
 class HttpUpdater {
 public:
@@ -21,16 +20,8 @@ public:
 
 
 private:
-    bool getMustConfirmUpdate() {
-        return preferences.getBool("confirmUpdate");
-    }
-    void setMustConfirmUpdate(bool mustConfirm) {
-        preferences.putBool("confirmUpdate", mustConfirm);
-    }
-
     bool setupDone = false;
     static WebServer server;    // Must be static to be usable in lambda
-    Preferences preferences;
 };
 
 #endif //NDN_ARDUINO_HTTPUPDATER_HPP

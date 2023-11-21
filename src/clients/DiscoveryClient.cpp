@@ -3,7 +3,11 @@
 //
 
 #include "DiscoveryClient.h"
+#include "utils/unit_conversions.h"
+#include "utils/Logger.h"
 #include <iostream>
+#include <numeric>
+#include <queue>
 
 bool DiscoveryClient::processNack(ndnph::Nack nack) {
     std::cout << "Received NACK" << std::endl;
@@ -11,9 +15,9 @@ bool DiscoveryClient::processNack(ndnph::Nack nack) {
 }
 
 bool DiscoveryClient::processData(ndnph::Data data) {
-    std::cout << "Received response packet" << std::endl;
+    LOG_INFO("Received response packet");
 
-    const ndnph::Name& dataName = data.getName();
+    const ndnph::Name &dataName = data.getName();
     if (!m_prefix.isPrefixOf(dataName) || m_prefix.size() + 1 != dataName.size()) {
         return false;
     }
@@ -26,24 +30,64 @@ bool DiscoveryClient::processData(ndnph::Data data) {
     return true;
 }
 
-bool DiscoveryClient::processInterest(ndnph::Interest interest) {
-    std::cout << "Received interest" << std::endl;
+bool DiscoveryClient::shouldRespondToDiscovery(const ndnph::Name& name) {
+    uint64_t deviceId = ESP.getEfuseMac();
+    byte deviceIdBuffer[8];
+    uint64ToByte(deviceIdBuffer, deviceId);
 
-    if (!m_prefix.isPrefixOf(interest.getName())) {
+    for (auto comp : name.slice(2)) {
+        if (comp.length() != 8) {
+            continue;
+        }
+
+        auto value = comp.value();
+        if (std::memcmp(value, deviceIdBuffer, 8) == 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool DiscoveryClient::processInterest(ndnph::Interest interest) {
+    LOG_INFO("Received interest in DiscoveryClient");
+    const auto &name = interest.getName();
+
+    if (!m_prefix.isPrefixOf(name)) {
         return false;
     }
 
-    std::cout << "Processing " << interest.getName() << std::endl;
+    if (!shouldRespondToDiscovery(name)) {
+        LOG_INFO("Skipping interest");
+        return false;
+    }
+
+    std::cout << "Processing " << name << std::endl;
 
     ndnph::StaticRegion<1024> region;
-
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
-    data.setName(interest.getName());
+    data.setName(interest.getName().append(region,ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str())));
     data.setFreshnessPeriod(1);
 
-    uint8_t val = 69;
-    data.setContent(ndnph::tlv::Value(&val, 1));
+    std::queue<std::string> qu(std::deque<std::string>(250));
+
+    // Build response message
+    std::vector<int> elementLengths;
+    std::transform(providedResources.begin(), providedResources.end(), std::back_inserter(elementLengths), [](const std::string& e) {
+        return e.length() + 1;   // +1 for additional 0-byte
+    });
+    auto sum = std::accumulate(elementLengths.begin(), elementLengths.end(), 0);
+
+    char buffer[sum];
+    size_t arrayOffset = 0;
+
+    for (const auto& res : providedResources) {
+        std::strcpy(buffer + arrayOffset, res.c_str());
+        arrayOffset += res.length() + 1;
+    }
+
+    data.setContent(ndnph::tlv::Value((uint8_t*) buffer, sum));
 
     reply(data.sign(m_signer));
     return true;
@@ -51,7 +95,8 @@ bool DiscoveryClient::processInterest(ndnph::Interest interest) {
 
 bool DiscoveryClient::sendInterest() {
     ndnph::StaticRegion<1024> region;
-    ndnph::Component seqNumComp = ndnph::Component::from(region, ndnph::TT::GenericNameComponent, ndnph::tlv::NNI8(++m_seqNum));
+    ndnph::Component seqNumComp = ndnph::Component::from(region, ndnph::TT::GenericNameComponent,
+                                                         ndnph::tlv::NNI8(++m_seqNum));
     NDNPH_ASSERT(!!seqNumComp);
     ndnph::Name name = m_prefix.append(region, seqNumComp);
     NDNPH_ASSERT(!!name);
@@ -72,3 +117,5 @@ bool DiscoveryClient::sendInterest() {
 
     return true;
 }
+
+

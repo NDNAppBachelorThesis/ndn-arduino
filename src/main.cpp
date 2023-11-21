@@ -10,6 +10,7 @@
 #include <sstream>
 #include "libs/ArduinoJson.h"
 #include "utils/WifiClientFixed.h"
+#include "utils/Logger.h"
 
 
 #define DHT_SENSOR_PIN 16
@@ -27,7 +28,7 @@ std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
 
-
+const uint64_t deviceId = ESP.getEfuseMac();
 
 #if SERVER_TYPE == 0
 // Nothing to do
@@ -39,8 +40,10 @@ MotionServer server(face, ndnph::Name::parse(region, "/esp/3/data"), MOTION_SENS
 #error "Please configure a valid sensor"
 #endif
 
+DiscoveryClient discoveryClient(face, ndnph::Name::parse(region, ("/esp/discovery")), {
+        "/esp/" + std::to_string(deviceId),
+});
 
-DiscoveryClient discoveryClient(face, ndnph::Name::parse(region, "/esp/discovery"));
 HttpUpdater httpUpdater;
 
 
@@ -69,14 +72,13 @@ void sendPing() {
     int responseCode = http.POST("PING");
 
     if (responseCode != 200) {
-        std::cerr << "Ping returned status code " << responseCode << std::endl;
+        LOG_ERROR("Ping returned status code %d", &responseCode);
     }
 
     http.end();
 }
 
 void registerBoard() {
-    auto deviceId = ESP.getEfuseMac();
     HTTPClient http;
     std::stringstream ss;
     ss << MGMT_URL;
@@ -92,12 +94,14 @@ void registerBoard() {
     int responseCode = http.POST(jsonBuffer, serializedSize);
 
     if (responseCode != 200) {
-        std::cerr << "Register returned status code " << responseCode << ". Restarting..." << std::endl;
+        LOG_ERROR("Register returned status code %d. Restarting...", &responseCode);
+
         http.end();
         ESP.restart();
     }
 
-    std::cout << "Successfully registered this board with ID " << deviceId << " and IP " << ipToString() << std::endl;
+    // Printing uint64_t is not supported. That's why this workaround is required
+    LOG_INFO("Successfully registered this board with ID %s and IP %s", std::to_string(deviceId).c_str(), ipToString().c_str());
     http.end();
 }
 
@@ -138,17 +142,7 @@ void setup() {
 
     enableAndConnectToWifi();
 
-// Only required when discovery not working
-//    bool ok = transport.beginListen();
-//    if (!ok) {
-//        Serial.println(F("UDP unicast transport initialization failed"));
-//        ESP.restart();
-//    }
-
-    Serial.print(F("nfdc face create udp4://"));
-    Serial.print(WiFi.localIP());
-    Serial.println(F(":6363"));
-    Serial.println();
+    LOG_INFO("nfdc face create udp4://%s:6363", ipToString().c_str());
 
     WiFiClientSecure fchSocketClient;
     fchSocketClient.setInsecure();
@@ -157,18 +151,20 @@ void setup() {
     auto ip = IPAddress();
 
     if (!ip.fromString(nfdIp.c_str())) {
-        std::cerr << "Failed to parse NFD ip" << std::endl;
+        LOG_ERROR("Failed to parse NFD ip");
         ESP.restart();
     } else {
         if (!transport.beginTunnel(ip)) {
-            std::cerr << "UDP tunnel connection failed" << std::endl;
+            LOG_ERROR("UDP tunnel connection failed");
         } else {
-            std::cout << "Tunnel successful" << std::endl;
+            LOG_INFO("Tunnel successful");
         }
     }
 
-    httpUpdater.setup();
     registerBoard();
+    httpUpdater.setup();
+
+    LOG_INFO("Setup done.");
 }
 
 int counter = 0;
