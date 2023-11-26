@@ -2,8 +2,8 @@
 // Created by arne- on 13.11.2023.
 //
 
-#ifndef NDN_ARDUINO_DISCOVERYCLIENT_H
-#define NDN_ARDUINO_DISCOVERYCLIENT_H
+#ifndef NDN_ARDUINO_DISCOVERYSERVER_H
+#define NDN_ARDUINO_DISCOVERYSERVER_H
 
 #include <ndnph/face/packet-handler.hpp>
 #include <ndnph/keychain/digest.hpp>
@@ -11,9 +11,9 @@
 #include <utility>
 #include <vector>
 
-class DiscoveryClient : public ndnph::PacketHandler {
+class DiscoveryServer : public ndnph::PacketHandler {
 public:
-    DiscoveryClient(ndnph::Face &face, ndnph::Name prefix) :
+    DiscoveryServer(ndnph::Face &face, ndnph::Name prefix) :
             PacketHandler(face),
             m_prefix(std::move(prefix)),
             m_signer(ndnph::DigestKey::get()) {
@@ -37,4 +37,4 @@ private:
 };
 
 
-#endif //NDN_ARDUINO_DISCOVERYCLIENT_H
+#endif //NDN_ARDUINO_DISCOVERYSERVER_H

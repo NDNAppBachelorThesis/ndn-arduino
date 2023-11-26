@@ -2,19 +2,19 @@
 // Created by arne- on 13.11.2023.
 //
 
-#include "DiscoveryClient.h"
+#include "DiscoveryServer.h"
 #include "utils/unit_conversions.h"
 #include "utils/Logger.h"
 #include <iostream>
 #include <numeric>
 #include <queue>
 
-bool DiscoveryClient::processNack(ndnph::Nack nack) {
+bool DiscoveryServer::processNack(ndnph::Nack nack) {
     LOG_ERROR("Received NACK");
     return false;
 }
 
-bool DiscoveryClient::shouldRespondToDiscovery(const ndnph::Name& name) {
+bool DiscoveryServer::shouldRespondToDiscovery(const ndnph::Name& name) {
     uint64_t deviceId = ESP.getEfuseMac();
     byte deviceIdBuffer[8];
     uint64ToByte(deviceIdBuffer, deviceId);
@@ -33,12 +33,12 @@ bool DiscoveryClient::shouldRespondToDiscovery(const ndnph::Name& name) {
     return true;
 }
 
-bool DiscoveryClient::processInterest(ndnph::Interest interest) {
+bool DiscoveryServer::processInterest(ndnph::Interest interest) {
     const auto &name = interest.getName();
     if (!m_prefix.isPrefixOf(name)) {
         return false;
     }
-    LOG_INFO("Received interest in DiscoveryClient");
+    LOG_INFO("Received interest in DiscoveryServer");
 
     if (!shouldRespondToDiscovery(name)) {
         LOG_INFO("Skipping interest. Already answered it.");

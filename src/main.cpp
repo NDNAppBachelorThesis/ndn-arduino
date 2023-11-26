@@ -2,7 +2,7 @@
 #include "utils/wifi_utils.h"
 #include <WiFiClientSecure.h>
 #include "servers/TempHumidServer.h"
-#include "clients/DiscoveryClient.h"
+#include "servers/DiscoveryServer.h"
 #include "sensors/dht11.h"
 #include "servers/MotionServer.h"
 #include "update/HttpUpdater.hpp"
@@ -13,10 +13,10 @@
 #include "utils/Logger.h"
 
 
-#define DHT_SENSOR_PIN       16
-#define MOTION_SENSOR_PIN    17
 #define HW_SELECT_PIN_TEMP   27
 #define HW_SELECT_PIN_MOTION 26
+#define DHT_SENSOR_PIN       16
+#define MOTION_SENSOR_PIN    17
 
 #define MGMT_URL "http://192.168.178.119:8000"
 
@@ -30,7 +30,11 @@ std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
 
-DiscoveryClient discoveryClient(face, ndnph::Name::parse(region, ("/esp/discovery")));
+TempHumidServer* tempServer = nullptr;
+
+MotionServer* motionServer = nullptr;
+
+DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
 
 
 /**
@@ -138,19 +142,19 @@ void setup() {
     bool useMotionSensor = digitalRead(HW_SELECT_PIN_MOTION) == LOW;
 
     if (useTempSensor) {
-        TempHumidServer server(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
-                               DHT_SENSOR_PIN);
-        discoveryClient.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
-        discoveryClient.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
+        tempServer = new TempHumidServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
+                                         DHT_SENSOR_PIN);
+        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
+        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
         LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
-    }
-
-    if (useMotionSensor) {
+    } else if (useMotionSensor) {
         pinMode(MOTION_SENSOR_PIN, INPUT);
-        MotionServer server(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
-                            MOTION_SENSOR_PIN);
-        discoveryClient.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
+        motionServer = new MotionServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
+                                        MOTION_SENSOR_PIN);
+        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
         LOG_INFO("[HW CONFIG] Using Motion Sensor.");
+    } else {
+        LOG_INFO("[HW CONFIG] No sensor configured.");
     }
 
     enableAndConnectToWifi();
@@ -187,7 +191,7 @@ void loop() {
     httpUpdater.run();
     face.loop();
 
-    if (++pingCounter % 1000 == 0) {
+    if (++pingCounter % 2500 == 0) {
         sendPing();
     }
 

@@ -6,21 +6,23 @@
 #include <iostream>
 #include <ndnph/tlv/value.hpp>
 #include "utils/unit_conversions.h"
+#include "utils/Logger.h"
 
 
 bool MotionServer::processInterest(ndnph::Interest interest) {
-    if (!namePrefix.isPrefixOf(interest.getName())) {
+    const auto &name = interest.getName();
+    if (!namePrefix.isPrefixOf(name)) {
         return false;
     }
 
-    std::cout << "Processing " << interest.getName() << std::endl;
+    LOG_INFO("Received interest in MotionServer");
 
     ndnph::StaticRegion<1024> region;
 
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
     data.setName(interest.getName());
-    data.setFreshnessPeriod(1);
+    data.setFreshnessPeriod(1000);  // Packet is only valid for 1000ms
 
     uint8_t value = digitalRead(sensorPin);
     std::cout << "Motion value " << (int) value << std::endl;
