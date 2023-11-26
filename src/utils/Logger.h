@@ -7,15 +7,21 @@
 
 #include "LogBuffer.h"
 #include <cstring>
+#include <sstream>
 
 
 #define LOG_INFO(...) Logger::instance.logInfo(__VA_ARGS__)
 #define LOG_ERROR(...) Logger::instance.logError(__VA_ARGS__)
 
+/**
+ * Convert ndnph::Name object to string.
+ * Can't use type ndnph::Name because including esp8266ndn.h here will break everything.
+ */
+std::string nameToString(const void* name);
+
 class Logger {
 public:
     Logger() = default;
-
 
     template<typename Msg_t, typename... Args>
     void _logHelper(FILE *output, const char *prefix, Msg_t rawMsg, Args... args) {

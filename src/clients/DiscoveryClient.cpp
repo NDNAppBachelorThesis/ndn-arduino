@@ -10,24 +10,8 @@
 #include <queue>
 
 bool DiscoveryClient::processNack(ndnph::Nack nack) {
-    std::cout << "Received NACK" << std::endl;
+    LOG_ERROR("Received NACK");
     return false;
-}
-
-bool DiscoveryClient::processData(ndnph::Data data) {
-    LOG_INFO("Received response packet");
-
-    const ndnph::Name &dataName = data.getName();
-    if (!m_prefix.isPrefixOf(dataName) || m_prefix.size() + 1 != dataName.size()) {
-        return false;
-    }
-
-    ndnph::Component lastComp = dataName[-1];
-    ndnph::Decoder::Tlv d;
-    ndnph::Decoder::readTlv(d, lastComp.tlv(), lastComp.tlv() + lastComp.size());
-    uint64_t seqNum = 0;
-
-    return true;
 }
 
 bool DiscoveryClient::shouldRespondToDiscovery(const ndnph::Name& name) {
@@ -50,25 +34,24 @@ bool DiscoveryClient::shouldRespondToDiscovery(const ndnph::Name& name) {
 }
 
 bool DiscoveryClient::processInterest(ndnph::Interest interest) {
-    LOG_INFO("Received interest in DiscoveryClient");
     const auto &name = interest.getName();
-
     if (!m_prefix.isPrefixOf(name)) {
         return false;
     }
+    LOG_INFO("Received interest in DiscoveryClient");
 
     if (!shouldRespondToDiscovery(name)) {
-        LOG_INFO("Skipping interest");
+        LOG_INFO("Skipping interest. Already answered it.");
         return false;
     }
 
-    std::cout << "Processing " << name << std::endl;
+    LOG_INFO("Processing %s", nameToString(&name).c_str());
 
     ndnph::StaticRegion<1024> region;
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
     data.setName(interest.getName().append(region,ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str())));
-    data.setFreshnessPeriod(1);
+    data.setFreshnessPeriod(1);     // Make sure we always use the newest requests
 
     std::queue<std::string> qu(std::deque<std::string>(250));
 
@@ -92,30 +75,4 @@ bool DiscoveryClient::processInterest(ndnph::Interest interest) {
     reply(data.sign(m_signer));
     return true;
 }
-
-bool DiscoveryClient::sendInterest() {
-    ndnph::StaticRegion<1024> region;
-    ndnph::Component seqNumComp = ndnph::Component::from(region, ndnph::TT::GenericNameComponent,
-                                                         ndnph::tlv::NNI8(++m_seqNum));
-    NDNPH_ASSERT(!!seqNumComp);
-    ndnph::Name name = m_prefix.append(region, seqNumComp);
-    NDNPH_ASSERT(!!name);
-
-    ndnph::Interest interest = region.create<ndnph::Interest>();
-    NDNPH_ASSERT(!!interest);
-    interest.setName(name);
-    interest.setMustBeFresh(true);
-
-    std::cout << "Sending packet " << name << "..." << std::endl;
-
-    if (!send(region, interest)) {
-        std::cout << "Packet sent failed." << std::endl;
-        return false;
-    }
-
-    std::cout << "Packet sent successfully." << std::endl;
-
-    return true;
-}
-
 

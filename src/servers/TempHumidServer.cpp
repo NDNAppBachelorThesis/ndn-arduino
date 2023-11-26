@@ -6,14 +6,16 @@
 #include "iostream"
 #include <ndnph/tlv/value.hpp>
 #include "utils/unit_conversions.h"
+#include "utils/Logger.h"
 
 
 bool TempHumidServer::processInterest(ndnph::Interest interest) {
-    if (!namePrefix.isPrefixOf(interest.getName())) {
+    const auto &name = interest.getName();
+    if (!namePrefix.isPrefixOf(name)) {
         return false;
     }
 
-    std::cout << "Processing " << interest.getName() << std::endl;
+    LOG_INFO("Received interest in TempHumidServer");
 
     ndnph::StaticRegion<1024> region;
 
@@ -22,8 +24,8 @@ bool TempHumidServer::processInterest(ndnph::Interest interest) {
 
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
-    data.setName(interest.getName());
-    data.setFreshnessPeriod(1);
+    data.setName(name);
+    data.setFreshnessPeriod(1000);  // Packet is only valid for 1000ms
 
     DHT11.read(dhtPort);
 

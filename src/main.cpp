@@ -13,38 +13,24 @@
 #include "utils/Logger.h"
 
 
-#define DHT_SENSOR_PIN 16
-#define MOTION_SENSOR_PIN 17
-#define SERVER_TYPE 0   // 0 = no sensor, 1 = Temp/Humid, 2 = Motion
+#define DHT_SENSOR_PIN       16
+#define MOTION_SENSOR_PIN    17
+#define HW_SELECT_PIN_TEMP   27
+#define HW_SELECT_PIN_MOTION 26
+
 #define MGMT_URL "http://192.168.178.119:8000"
 
 
-WifiClientFixed* wifiClient = new WifiClientFixed();
-
+WifiClientFixed *wifiClient = new WifiClientFixed();
+const uint64_t deviceId = ESP.getEfuseMac();
+HttpUpdater httpUpdater;
 
 ndnph::StaticRegion<1024> region;
-
 std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
 
-const uint64_t deviceId = ESP.getEfuseMac();
-
-#if SERVER_TYPE == 0
-// Nothing to do
-#elif SERVER_TYPE == 1
-TempHumidServer server(face, ndnph::Name::parse(region, "/esp/2/data"), DHT_SENSOR_PIN);
-#elif SERVER_TYPE == 2
-MotionServer server(face, ndnph::Name::parse(region, "/esp/3/data"), MOTION_SENSOR_PIN);
-#else
-#error "Please configure a valid sensor"
-#endif
-
-DiscoveryClient discoveryClient(face, ndnph::Name::parse(region, ("/esp/discovery")), {
-        "/esp/" + std::to_string(deviceId),
-});
-
-HttpUpdater httpUpdater;
+DiscoveryClient discoveryClient(face, ndnph::Name::parse(region, ("/esp/discovery")));
 
 
 /**
@@ -54,14 +40,15 @@ HttpUpdater httpUpdater;
 std::string ipToString() {
     auto ip = WiFi.localIP();
     std::stringstream ss;
-    ss << (int)ip[0] << "." << (int) ip[1] << "." << (int) ip[2] << "." << (int) ip[3];
+    ss << (int) ip[0] << "." << (int) ip[1] << "." << (int) ip[2] << "." << (int) ip[3];
 
     return ss.str();
 }
 
-
+/**
+ * Sends a ping to the management server to tell it this board is still alive
+ */
 void sendPing() {
-    auto deviceId = ESP.getEfuseMac();
     HTTPClient http;
     std::stringstream ss;
     ss << MGMT_URL;
@@ -78,6 +65,9 @@ void sendPing() {
     http.end();
 }
 
+/**
+ * Registers this board to the management server
+ */
 void registerBoard() {
     HTTPClient http;
     std::stringstream ss;
@@ -101,10 +91,14 @@ void registerBoard() {
     }
 
     // Printing uint64_t is not supported. That's why this workaround is required
-    LOG_INFO("Successfully registered this board with ID %s and IP %s", std::to_string(deviceId).c_str(), ipToString().c_str());
+    LOG_INFO("Successfully registered this board with ID %s and IP %s", std::to_string(deviceId).c_str(),
+             ipToString().c_str());
     http.end();
 }
 
+/**
+ * Requests the NDF ip from the management server
+ */
 std::string getNFDIP() {
     HTTPClient http;
     http.begin(*wifiClient, (std::string(MGMT_URL) + std::string("/settingsApi")).c_str());
@@ -112,7 +106,8 @@ std::string getNFDIP() {
     int responseCode = http.GET();
 
     if (responseCode != 200) {
-        std::cerr << "Getting NFD IP from management server returned status " << responseCode << ". Restarting..." << std::endl;
+        std::cerr << "Getting NFD IP from management server returned status " << responseCode << ". Restarting..."
+                  << std::endl;
         http.end();
         ESP.restart();
     }
@@ -136,9 +131,27 @@ void setup() {
     Serial.println();
     esp8266ndn::setLogOutput(Serial);
 
-#if SERVER_TYPE == 2
-    pinMode(MOTION_SENSOR_PIN, INPUT);
-#endif
+    pinMode(HW_SELECT_PIN_TEMP, INPUT_PULLUP);
+    pinMode(HW_SELECT_PIN_MOTION, INPUT_PULLUP);
+    delay(50);     // Give hw some time to react
+    bool useTempSensor = digitalRead(HW_SELECT_PIN_TEMP) == LOW;
+    bool useMotionSensor = digitalRead(HW_SELECT_PIN_MOTION) == LOW;
+
+    if (useTempSensor) {
+        TempHumidServer server(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
+                               DHT_SENSOR_PIN);
+        discoveryClient.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
+        discoveryClient.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
+        LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
+    }
+
+    if (useMotionSensor) {
+        pinMode(MOTION_SENSOR_PIN, INPUT);
+        MotionServer server(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
+                            MOTION_SENSOR_PIN);
+        discoveryClient.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
+        LOG_INFO("[HW CONFIG] Using Motion Sensor.");
+    }
 
     enableAndConnectToWifi();
 
@@ -167,17 +180,12 @@ void setup() {
     LOG_INFO("Setup done.");
 }
 
-int counter = 0;
+
 uint16_t pingCounter = 0;
 
 void loop() {
     httpUpdater.run();
     face.loop();
-
-//    if (++counter >= 2500) {
-//        counter = 0;
-//        discoveryClient.sendInterest();
-//    }
 
     if (++pingCounter % 1000 == 0) {
         sendPing();

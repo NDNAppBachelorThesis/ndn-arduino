@@ -31,7 +31,9 @@ void HttpUpdater::setup() {
     // handling uploading firmware file
     server.on("/update", HTTP_POST, []() {
         server.sendHeader("Connection", "close");
+        server.sendHeader("Access-Control-Allow-Origin", "*");  // Important, otherwise update gets displayed as failed!
         server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+        delay(100); // Without this delay the webserver might not recognize that the update succeeded
         ESP.restart();
     }, []() {
         HTTPUpload& upload = server.upload();
