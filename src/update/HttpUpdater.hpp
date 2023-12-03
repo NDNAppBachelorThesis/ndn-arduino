@@ -13,11 +13,10 @@ public:
     HttpUpdater() = default;
 
     void setup();
-    void run() {
+    void run() const {
         assert(setupDone);
         server.handleClient();
     };
-
 
 private:
     bool setupDone = false;

@@ -1,0 +1,8 @@
+.pio
+.idea
+test
+.gitignore
+.git
+
+# Password files
+wifi.ini

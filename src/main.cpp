@@ -18,7 +18,7 @@
 #define DHT_SENSOR_PIN       16
 #define MOTION_SENSOR_PIN    17
 
-#define MGMT_URL "http://192.168.178.119:8000"
+#define MGMT_URL "http://192.168.178.119:3000"
 
 
 WifiClientFixed *wifiClient = new WifiClientFixed();
