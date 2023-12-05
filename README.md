@@ -1,3 +1,11 @@
+# NDN Arduino Firmware
+
+## Mirror
+If you are viewing this from a mirror then please visit `https://github.com/NDNAppBachelorThesis/ndn-arduino` to
+access the build artifacts
+
+
+
 # Get started developing
 1. Install the ESP32 board driver from `https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads`
 2. Clone and open this project in CLion

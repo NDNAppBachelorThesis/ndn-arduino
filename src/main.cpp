@@ -11,6 +11,7 @@
 #include "libs/ArduinoJson.h"
 #include "utils/WifiClientFixed.h"
 #include "utils/Logger.h"
+#include "servers/FiwareOrionServer.h"
 
 
 #define HW_SELECT_PIN_TEMP   27
@@ -18,7 +19,7 @@
 #define DHT_SENSOR_PIN       16
 #define MOTION_SENSOR_PIN    17
 
-#define MGMT_URL "http://192.168.178.119:3000"
+#define MGMT_URL "http://192.168.178.119:8000"
 
 
 WifiClientFixed *wifiClient = new WifiClientFixed();
@@ -35,6 +36,9 @@ TempHumidServer* tempServer = nullptr;
 MotionServer* motionServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
+
+FiwareOrionServer* fiwareServer = nullptr;
+
 
 
 /**
@@ -146,6 +150,7 @@ void setup() {
                                          DHT_SENSOR_PIN);
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
+        fiwareServer = new FiwareOrionServer(face, DHT_SENSOR_PIN);
         LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
     } else if (useMotionSensor) {
         pinMode(MOTION_SENSOR_PIN, INPUT);
