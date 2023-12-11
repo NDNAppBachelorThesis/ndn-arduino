@@ -40,5 +40,6 @@ bool FiwareOrionServer::sendInterest()
     if (!send(interest)) {
         return false;
     }
+
     return true;
 }

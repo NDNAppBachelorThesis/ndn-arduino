@@ -3,23 +3,26 @@
 #include <WiFiClientSecure.h>
 #include "servers/TempHumidServer.h"
 #include "servers/DiscoveryServer.h"
-#include "sensors/dht11.h"
 #include "servers/MotionServer.h"
+#include "servers/UltrasonicServer.h"
+#include "sensors/dht11.h"
 #include "update/HttpUpdater.hpp"
 #include <HTTPClient.h>
 #include <sstream>
 #include "libs/ArduinoJson.h"
 #include "utils/WifiClientFixed.h"
 #include "utils/Logger.h"
-#include "servers/FiwareOrionServer.h"
 
 
-#define HW_SELECT_PIN_TEMP   27
-#define HW_SELECT_PIN_MOTION 26
-#define DHT_SENSOR_PIN       16
-#define MOTION_SENSOR_PIN    17
+#define HW_SELECT_PIN_TEMP              27
+#define HW_SELECT_PIN_MOTION            26
+#define HW_SELECT_PIN_ULTRASONIC        35
+#define DHT_SENSOR_PIN                  16
+#define MOTION_SENSOR_PIN               17
+#define ULTRASONIC_SENSOR_TRIGGER_PIN   38
+#define ULTRASONIC_SENSOR_ECHO_PIN      39
 
-#define MGMT_URL "http://192.168.178.119:8000"
+#define MGMT_URL "http://192.168.178.119:3000"
 
 
 WifiClientFixed *wifiClient = new WifiClientFixed();
@@ -31,14 +34,11 @@ std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
 
-TempHumidServer* tempServer = nullptr;
-
-MotionServer* motionServer = nullptr;
+TempHumidServer *tempServer = nullptr;
+MotionServer *motionServer = nullptr;
+UltrasonicServer *ultrasonicServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
-
-FiwareOrionServer* fiwareServer = nullptr;
-
 
 
 /**
@@ -141,23 +141,34 @@ void setup() {
 
     pinMode(HW_SELECT_PIN_TEMP, INPUT_PULLUP);
     pinMode(HW_SELECT_PIN_MOTION, INPUT_PULLUP);
+    pinMode(HW_SELECT_PIN_ULTRASONIC, INPUT_PULLUP);
     delay(50);     // Give hw some time to react
     bool useTempSensor = digitalRead(HW_SELECT_PIN_TEMP) == LOW;
     bool useMotionSensor = digitalRead(HW_SELECT_PIN_MOTION) == LOW;
+    bool useUltrasonicSensor = digitalRead(HW_SELECT_PIN_ULTRASONIC) == LOW;
 
     if (useTempSensor) {
-        tempServer = new TempHumidServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
+        tempServer = new TempHumidServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
+                                                                           "/data").c_str()),
                                          DHT_SENSOR_PIN);
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
-        fiwareServer = new FiwareOrionServer(face, DHT_SENSOR_PIN);
         LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
     } else if (useMotionSensor) {
         pinMode(MOTION_SENSOR_PIN, INPUT);
-        motionServer = new MotionServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str()),
+        motionServer = new MotionServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
+                                                                          "/data").c_str()),
                                         MOTION_SENSOR_PIN);
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
         LOG_INFO("[HW CONFIG] Using Motion Sensor.");
+    } else if (useUltrasonicSensor) {
+        pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
+        pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
+        ultrasonicServer = new UltrasonicServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
+                                                                                  "/data").c_str()),
+                                                ULTRASONIC_SENSOR_TRIGGER_PIN, ULTRASONIC_SENSOR_ECHO_PIN);
+        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
+        LOG_INFO("[HW CONFIG] Using Ultrasonic Sensor.");
     } else {
         LOG_INFO("[HW CONFIG] No sensor configured.");
     }
