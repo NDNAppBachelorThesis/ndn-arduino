@@ -16,9 +16,7 @@ public:
     DiscoveryServer(ndnph::Face &face, ndnph::Name prefix) :
             PacketHandler(face),
             m_prefix(std::move(prefix)),
-            m_signer(ndnph::DigestKey::get()) {
-        ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t *>(&m_seqNum), sizeof(m_seqNum));
-    }
+            m_signer(ndnph::DigestKey::get()) {}
 
     void addProvidedResource(const std::string& resource) {
         providedResources.push_back(resource);
@@ -32,7 +30,6 @@ private:
 private:
     ndnph::Name m_prefix;
     const ndnph::PrivateKey &m_signer;
-    uint64_t m_seqNum = 0;
     std::vector<std::string> providedResources;
 };
 

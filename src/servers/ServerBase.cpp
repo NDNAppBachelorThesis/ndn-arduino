@@ -32,11 +32,14 @@ bool ServerBase::sendAutoInterest(const std::string& nameSuffix, const std::func
     auto dataComp = ndnph::Component::from(region, ndnph::TT::GenericNameComponent, ndnph::tlv::Value(buffer, 8));
     interest.setName(name.append(region, dataComp));
     interest.setMustBeFresh(true);
+    interest.setLifetime(1000);
+    // Extremely important to set a nonce, otherwise NFD will (rightfully so) complain about duplicate nonces!
+    interest.setNonce(generateNonce());
+    std::cout << "Nonce: " << interest.getNonce() << std::endl;
 
     if (!send(interest)) {
         return false;
     }
-
     return true;
 }
 
@@ -60,5 +63,18 @@ bool ServerBase::processInterest(ndnph::Interest interest) {
 
     reply(data.sign(m_signer));
     return true;
+}
+
+bool ServerBase::processNack(ndnph::Nack nack) {
+    std::cout << "Sending to Fiware-Orion for " << getServiceName() << " returned NACK." << std::endl;
+    return true;
+}
+
+uint32_t ServerBase::generateNonce() {
+    uint32_t nonce;
+    // Does not work. I somehow get linked to the null implementation
+//    ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t*>(&nonce), sizeof(nonce));
+    esp_fill_random(reinterpret_cast<uint8_t*>(&nonce), sizeof(nonce));
+    return nonce;
 }
 

@@ -13,7 +13,7 @@
 class UltrasonicServer : public ServerBase {
 public:
     explicit UltrasonicServer(ndnph::Face &face, ndnph::Name prefix, int sensorTriggerPin, int sensorEchoPin) :
-            ServerBase(face, std::move(prefix), 1000),
+            ServerBase(face, std::move(prefix), 60000),
             sensor(sensorTriggerPin, sensorEchoPin) {}
 
 protected:

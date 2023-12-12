@@ -164,9 +164,9 @@ void setup() {
     } else if (useUltrasonicSensor) {
         pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
         pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
-        ultrasonicServer = new UltrasonicServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
-                                                                                  "/data").c_str()),
-                                                ULTRASONIC_SENSOR_TRIGGER_PIN, ULTRASONIC_SENSOR_ECHO_PIN);
+//        ultrasonicServer = new UltrasonicServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
+//                                                                                  "/data").c_str()),
+//                                                ULTRASONIC_SENSOR_TRIGGER_PIN, ULTRASONIC_SENSOR_ECHO_PIN);
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
         LOG_INFO("[HW CONFIG] Using Ultrasonic Sensor.");
     } else {

@@ -25,11 +25,14 @@ protected:
     virtual void sendAllAutoInterests() = 0;
     bool sendAutoInterest(const std::string& nameSuffix, const std::function<void(byte*)>& getData);
     virtual std::string getServiceName() = 0;
+    uint32_t generateNonce();
 
 private:
     void loop() override;
     bool processInterest(ndnph::Interest interest) override;
     virtual bool createInterestResponseData(ndnph::StaticRegion<1024> &region, const ndnph::Name &name, byte *buffer) = 0;
+
+    bool processNack(ndnph::Nack nack) override;
 
 protected:
     const ndnph::Name namePrefix;

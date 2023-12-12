@@ -34,6 +34,7 @@ bool DiscoveryServer::shouldRespondToDiscovery(const ndnph::Name& name) {
 }
 
 bool DiscoveryServer::processInterest(ndnph::Interest interest) {
+    LOG_INFO("arne");
     const auto &name = interest.getName();
     if (!m_prefix.isPrefixOf(name)) {
         return false;
