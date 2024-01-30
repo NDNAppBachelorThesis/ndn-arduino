@@ -5,9 +5,14 @@
 #include "ServerBase.h"
 #include "utils/Logger.h"
 
+#define SEND_AUTO_INTERESTS 0
+
 ServerBase::~ServerBase() = default;
 
 void ServerBase::loop() {
+#if !SEND_AUTO_INTERESTS
+    return;
+#endif
     auto now = ndnph::port::Clock::now();
     if (ndnph::port::Clock::isBefore(now, m_next)) {
         return;
@@ -35,7 +40,7 @@ bool ServerBase::sendAutoInterest(const std::string& nameSuffix, const std::func
     interest.setLifetime(1000);
     // Extremely important to set a nonce, otherwise NFD will (rightfully so) complain about duplicate nonces!
     interest.setNonce(generateNonce());
-    std::cout << "Nonce: " << interest.getNonce() << std::endl;
+//    std::cout << "Nonce: " << interest.getNonce() << std::endl;
 
     if (!send(interest)) {
         return false;

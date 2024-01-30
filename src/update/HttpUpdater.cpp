@@ -6,12 +6,21 @@
 #include "utils/Logger.h"
 #include <iostream>
 #include <sstream>
+#include "sensors/dht11.h"
 
 
 WebServer HttpUpdater::server;  // Allocate memory for static variable
 
 
 void HttpUpdater::setup() {
+//    server.on("/value", HTTP_GET, []() {
+//        server.sendHeader("Connection", "close");
+//        dht11 DHT{};
+//        DHT.read(27);
+//        auto tmp = (float) DHT.temperature;
+//
+//        server.send(200, "text/plain", std::to_string(tmp).c_str());
+//    });
     // Return logs
     server.on("/log", HTTP_GET, []() {
         server.sendHeader("Connection", "close");

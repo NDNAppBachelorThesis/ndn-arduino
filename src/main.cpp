@@ -12,6 +12,7 @@
 #include "libs/ArduinoJson.h"
 #include "utils/WifiClientFixed.h"
 #include "utils/Logger.h"
+#include <xtensa_perfmon_access.h>
 
 
 #define HW_SELECT_PIN_TEMP              27
@@ -143,6 +144,8 @@ void setup() {
     pinMode(HW_SELECT_PIN_MOTION, INPUT_PULLUP);
     pinMode(HW_SELECT_PIN_ULTRASONIC, INPUT_PULLUP);
     delay(50);     // Give hw some time to react
+
+    // ToDo: Gesteckt-erkennung anstatt der separaten Pins?
     bool useTempSensor = digitalRead(HW_SELECT_PIN_TEMP) == LOW;
     bool useMotionSensor = digitalRead(HW_SELECT_PIN_MOTION) == LOW;
     bool useUltrasonicSensor = digitalRead(HW_SELECT_PIN_ULTRASONIC) == LOW;
@@ -202,13 +205,24 @@ void setup() {
 
 
 uint16_t pingCounter = 0;
+long long cycleSum = 0;
+long cycleCnt = 0;
 
 void loop() {
+    auto cnt1 = ESP.getCycleCount();
+
     httpUpdater.run();
     face.loop();
 
+    auto cnt2 = ESP.getCycleCount();
+    cycleSum += (cnt2 - cnt1);
+    cycleCnt++;
+
     if (++pingCounter % 2500 == 0) {
         sendPing();
+        std::cout << "Average cycle count: " << (cycleSum / cycleCnt) << std::endl;
+        cycleSum = 0;
+        cycleCnt = 0;
     }
 
     delay(1);
