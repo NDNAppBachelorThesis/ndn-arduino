@@ -4,6 +4,7 @@
 #include "servers/TempHumidServer.h"
 #include "servers/DiscoveryServer.h"
 #include "servers/MotionServer.h"
+#include "servers/LinkQualityServer.h"
 #include "servers/UltrasonicServer.h"
 #include "sensors/dht11.h"
 #include "update/HttpUpdater.hpp"
@@ -12,7 +13,6 @@
 #include "libs/ArduinoJson.h"
 #include "utils/WifiClientFixed.h"
 #include "utils/Logger.h"
-#include <xtensa_perfmon_access.h>
 
 
 #define HW_SELECT_PIN_TEMP              27
@@ -40,6 +40,7 @@ MotionServer *motionServer = nullptr;
 UltrasonicServer *ultrasonicServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
+//LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/linkquality").c_str()));
 
 
 /**

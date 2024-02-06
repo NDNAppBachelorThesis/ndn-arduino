@@ -34,7 +34,6 @@ bool DiscoveryServer::shouldRespondToDiscovery(const ndnph::Name& name) {
 }
 
 bool DiscoveryServer::processInterest(ndnph::Interest interest) {
-    LOG_INFO("arne");
     const auto &name = interest.getName();
     if (!m_prefix.isPrefixOf(name)) {
         return false;
@@ -52,7 +51,7 @@ bool DiscoveryServer::processInterest(ndnph::Interest interest) {
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
     data.setName(interest.getName().append(region,ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str())));
-    data.setFreshnessPeriod(1);     // Make sure we always use the newest requests
+    data.setFreshnessPeriod(0);     // Make sure we always use the newest requests
 
     std::queue<std::string> qu(std::deque<std::string>(250));
 

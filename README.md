@@ -39,6 +39,7 @@ password = your-super-secret-wifiClient-password
 2. Add route ``nfdc route add <prefix> <id from step 1>``
 
 To show all routes run ``nfdc route list``
+``nfdc strategy set /esp/discovery /localhost/nfd/strategy/multicast``
 
 
 # Pin Layout
