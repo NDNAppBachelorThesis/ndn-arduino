@@ -51,7 +51,8 @@ bool DiscoveryServer::processInterest(ndnph::Interest interest) {
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
     data.setName(interest.getName().append(region,ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str())));
-    data.setFreshnessPeriod(0);     // Make sure we always use the newest requests
+    // DO NOT REDUCE TO 0!!! This will, for whatever reason, cause the device to not receive any responses
+    data.setFreshnessPeriod(10);     // Make sure we always use the newest requests
 
     std::queue<std::string> qu(std::deque<std::string>(250));
 

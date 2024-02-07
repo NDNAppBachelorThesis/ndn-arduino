@@ -15,9 +15,6 @@
 #include "utils/Logger.h"
 
 
-#define HW_SELECT_PIN_TEMP              27
-#define HW_SELECT_PIN_MOTION            26
-#define HW_SELECT_PIN_ULTRASONIC        35
 #define DHT_SENSOR_PIN                  16
 #define MOTION_SENSOR_PIN               17
 #define ULTRASONIC_SENSOR_TRIGGER_PIN   38
@@ -40,7 +37,8 @@ MotionServer *motionServer = nullptr;
 UltrasonicServer *ultrasonicServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
-//LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/linkquality").c_str()));
+LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
+                                                                      "/linkquality").c_str()));
 
 
 /**
@@ -136,43 +134,66 @@ std::string getNFDIP() {
 }
 
 
+bool isTempSensorPlugged() {
+    return digitalRead(DHT_SENSOR_PIN) != 0;
+}
+
+bool isUltrasonicSensorPlugged() {
+    digitalWrite(ULTRASONIC_SENSOR_TRIGGER_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(ULTRASONIC_SENSOR_TRIGGER_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(ULTRASONIC_SENSOR_TRIGGER_PIN, LOW);
+
+    return pulseIn(ULTRASONIC_SENSOR_ECHO_PIN, HIGH) != 0;
+}
+
+// ToDo: implement
+bool isMotionSensorPlugged() {
+    return false;
+}
+
+ndnph::Name getNdnNameForData() {
+    return ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str());
+}
+
 void setup() {
     Serial.begin(115200);
     Serial.println();
     esp8266ndn::setLogOutput(Serial);
 
-    pinMode(HW_SELECT_PIN_TEMP, INPUT_PULLUP);
-    pinMode(HW_SELECT_PIN_MOTION, INPUT_PULLUP);
-    pinMode(HW_SELECT_PIN_ULTRASONIC, INPUT_PULLUP);
-    delay(50);     // Give hw some time to react
+    // --- Configure possible pins ---
+    pinMode(DHT_SENSOR_PIN, INPUT);
+    pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
+    pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
+    pinMode(MOTION_SENSOR_PIN, INPUT);
 
-    // ToDo: Gesteckt-erkennung anstatt der separaten Pins?
-    bool useTempSensor = digitalRead(HW_SELECT_PIN_TEMP) == LOW;
-    bool useMotionSensor = digitalRead(HW_SELECT_PIN_MOTION) == LOW;
-    bool useUltrasonicSensor = digitalRead(HW_SELECT_PIN_ULTRASONIC) == LOW;
-
-    if (useTempSensor) {
-        tempServer = new TempHumidServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
-                                                                           "/data").c_str()),
-                                         DHT_SENSOR_PIN);
+    if (isTempSensorPlugged()) {
+        LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
+        tempServer = new TempHumidServer(
+                face,
+                getNdnNameForData(),
+                DHT_SENSOR_PIN
+        );
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
-        LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
-    } else if (useMotionSensor) {
-        pinMode(MOTION_SENSOR_PIN, INPUT);
-        motionServer = new MotionServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
-                                                                          "/data").c_str()),
-                                        MOTION_SENSOR_PIN);
-        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
+    } else if (isMotionSensorPlugged()) {
         LOG_INFO("[HW CONFIG] Using Motion Sensor.");
-    } else if (useUltrasonicSensor) {
-        pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
-        pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
-//        ultrasonicServer = new UltrasonicServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
-//                                                                                  "/data").c_str()),
-//                                                ULTRASONIC_SENSOR_TRIGGER_PIN, ULTRASONIC_SENSOR_ECHO_PIN);
+        motionServer = new MotionServer(
+                face,
+                getNdnNameForData(),
+                MOTION_SENSOR_PIN
+        );
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
+    } else if (isUltrasonicSensorPlugged()) {
         LOG_INFO("[HW CONFIG] Using Ultrasonic Sensor.");
+        ultrasonicServer = new UltrasonicServer(
+                face,
+                getNdnNameForData(),
+                ULTRASONIC_SENSOR_TRIGGER_PIN,
+                ULTRASONIC_SENSOR_ECHO_PIN
+        );
+        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
     } else {
         LOG_INFO("[HW CONFIG] No sensor configured.");
     }
@@ -200,6 +221,9 @@ void setup() {
 
     registerBoard();
     httpUpdater.setup();
+
+    pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
+    pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
 
     LOG_INFO("Setup done.");
 }
