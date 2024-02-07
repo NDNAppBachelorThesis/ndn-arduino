@@ -1,26 +1,24 @@
 #include <esp8266ndn.h>
-#include "utils/wifi_utils.h"
 #include <WiFiClientSecure.h>
-#include "servers/TempHumidServer.h"
-#include "servers/DiscoveryServer.h"
-#include "servers/MotionServer.h"
-#include "servers/LinkQualityServer.h"
-#include "servers/UltrasonicServer.h"
-#include "sensors/dht11.h"
-#include "update/HttpUpdater.hpp"
 #include <HTTPClient.h>
 #include <sstream>
 #include "libs/ArduinoJson.h"
+#include "utils/wifi_utils.h"
 #include "utils/WifiClientFixed.h"
 #include "utils/Logger.h"
+#include "update/HttpUpdater.hpp"
+#include "sensors/dht11.h"
+#include "servers/TempHumidServer.h"
+#include "servers/DiscoveryServer.h"
+#include "servers/LinkQualityServer.h"
+#include "servers/UltrasonicServer.h"
 
 
 #define DHT_SENSOR_PIN                  16
-#define MOTION_SENSOR_PIN               17
 #define ULTRASONIC_SENSOR_TRIGGER_PIN   38
 #define ULTRASONIC_SENSOR_ECHO_PIN      39
 
-#define MGMT_URL "http://192.168.178.119:3000"
+#define MGMT_URL "http://192.168.178.179:3000"
 
 
 WifiClientFixed *wifiClient = new WifiClientFixed();
@@ -33,7 +31,6 @@ esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
 
 TempHumidServer *tempServer = nullptr;
-MotionServer *motionServer = nullptr;
 UltrasonicServer *ultrasonicServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
@@ -148,14 +145,11 @@ bool isUltrasonicSensorPlugged() {
     return pulseIn(ULTRASONIC_SENSOR_ECHO_PIN, HIGH) != 0;
 }
 
-// ToDo: implement
-bool isMotionSensorPlugged() {
-    return false;
-}
 
 ndnph::Name getNdnNameForData() {
     return ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str());
 }
+
 
 void setup() {
     Serial.begin(115200);
@@ -166,7 +160,6 @@ void setup() {
     pinMode(DHT_SENSOR_PIN, INPUT);
     pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
     pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
-    pinMode(MOTION_SENSOR_PIN, INPUT);
 
     if (isTempSensorPlugged()) {
         LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
@@ -177,14 +170,6 @@ void setup() {
         );
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/temperature");
         discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data/humidity");
-    } else if (isMotionSensorPlugged()) {
-        LOG_INFO("[HW CONFIG] Using Motion Sensor.");
-        motionServer = new MotionServer(
-                face,
-                getNdnNameForData(),
-                MOTION_SENSOR_PIN
-        );
-        discoveryServer.addProvidedResource("/esp/" + std::to_string(deviceId) + "/data");
     } else if (isUltrasonicSensorPlugged()) {
         LOG_INFO("[HW CONFIG] Using Ultrasonic Sensor.");
         ultrasonicServer = new UltrasonicServer(
@@ -245,7 +230,7 @@ void loop() {
 
     if (++pingCounter % 2500 == 0) {
         sendPing();
-        std::cout << "Average cycle count: " << (cycleSum / cycleCnt) << std::endl;
+//        std::cout << "Average cycle count: " << (cycleSum / cycleCnt) << std::endl;
         cycleSum = 0;
         cycleCnt = 0;
     }

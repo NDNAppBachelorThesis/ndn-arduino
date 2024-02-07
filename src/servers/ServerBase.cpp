@@ -5,14 +5,9 @@
 #include "ServerBase.h"
 #include "utils/Logger.h"
 
-#define SEND_AUTO_INTERESTS 0
-
 ServerBase::~ServerBase() = default;
 
 void ServerBase::loop() {
-#if !SEND_AUTO_INTERESTS
-    return;
-#endif
     auto now = ndnph::port::Clock::now();
     if (ndnph::port::Clock::isBefore(now, m_next)) {
         return;

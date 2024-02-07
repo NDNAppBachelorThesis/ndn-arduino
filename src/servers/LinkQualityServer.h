@@ -20,7 +20,7 @@ public:
             PacketHandler(face),
             m_prefix(std::move(prefix)),
             m_signer(ndnph::DigestKey::get()),
-            autoSendDelay(1000) {}
+            autoSendDelay(30000) {}
 
 
 private:

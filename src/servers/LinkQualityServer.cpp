@@ -23,7 +23,7 @@ void LinkQualityServer::loop() {
 
 void LinkQualityServer::sendLinkQualityPacket() {
     LOG_INFO("Sending link quality packet.");
-    auto interestNameStr = "/esp/linkqualityhandler/" +  std::to_string(deviceId);
+    auto interestNameStr = "/esp/linkqualityhandler/" + std::to_string(deviceId);
     ndnph::StaticRegion<1024> region;
     auto name = ndnph::Name::parse(region, interestNameStr.c_str());
     NDNPH_ASSERT(!!name);
@@ -133,6 +133,6 @@ uint32_t LinkQualityServer::generateNonce() {
     uint32_t nonce;
     // Does not work. I somehow get linked to the null implementation
 //    ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t*>(&nonce), sizeof(nonce));
-    esp_fill_random(reinterpret_cast<uint8_t*>(&nonce), sizeof(nonce));
+    esp_fill_random(reinterpret_cast<uint8_t *>(&nonce), sizeof(nonce));
     return nonce;
 }
