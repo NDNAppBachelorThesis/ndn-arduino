@@ -18,11 +18,11 @@
 #define ULTRASONIC_SENSOR_TRIGGER_PIN   38
 #define ULTRASONIC_SENSOR_ECHO_PIN      39
 
-#define MGMT_URL "http://192.168.178.179:3000"
 
 
 WifiClientFixed *wifiClient = new WifiClientFixed();
 const uint64_t deviceId = ESP.getEfuseMac();
+std::string mgmtServerUrl = "";
 HttpUpdater httpUpdater;
 
 ndnph::StaticRegion<1024> region;
@@ -37,6 +37,73 @@ DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discover
 LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
                                                                       "/linkquality").c_str()));
 
+IPAddress getBroadcastIP() {
+    auto subnetMask = WiFi.subnetMask();
+    auto gatewayIP = WiFi.gatewayIP();
+
+    IPAddress broadcastIP;
+
+    for (int i = 0; i < 4; i++)
+        broadcastIP[i] = ~subnetMask[i] | gatewayIP[i];
+
+    return broadcastIP;
+}
+
+std::string searchForManagementServerURL() {
+    WiFiUDP udp;
+
+    if (!udp.begin(32200)) {
+        Serial.println("Failed to open UDP socket!");
+        ESP.restart();
+    }
+
+    String message = "ESP32 MGMT IP request";
+
+    // Send data
+    udp.beginPacket(getBroadcastIP(), 32200);
+    udp.write((uint8_t*) message.c_str(), message.length());
+    udp.endPacket();
+
+    udp.flush();
+
+    delay(100);
+
+    uint8_t buffer[255];
+    std::memset(buffer, 0, 255);
+    size_t readCnt = 0;
+    auto remainingSize = 255;
+    auto tEnd = esp_timer_get_time() + 1000 * 1000 * 5;    // 5 seconds
+    bool found = false;
+
+    while (esp_timer_get_time() < tEnd) {
+        auto available = udp.parsePacket();
+        if (available <= 0) {
+            delay(10);
+            continue;
+        }
+        readCnt += udp.readBytes(&buffer[readCnt], min(remainingSize - (int) readCnt, available));
+
+        if (readCnt >= 4) {
+            remainingSize = 4 + *reinterpret_cast<int*>(buffer);
+        }
+
+        if (readCnt == remainingSize) {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        std::cerr << "Couldn't find the IP of the management server. Rebooting." << std::endl;
+        ESP.restart();
+    }
+
+    udp.stop();     // Close connection
+
+    std::cout << "Received MGMT server IP: " << &buffer[4] << ":3000" << std::endl;
+
+    return "http://" + std::string((const char*) &buffer[4]) + ":3000";
+}
 
 /**
  * The Function for the IpAddress class just doesn't work
@@ -56,7 +123,7 @@ std::string ipToString() {
 void sendPing() {
     HTTPClient http;
     std::stringstream ss;
-    ss << MGMT_URL;
+    ss << mgmtServerUrl;
     ss << "/ping/";
     ss << deviceId;
 
@@ -76,7 +143,7 @@ void sendPing() {
 void registerBoard() {
     HTTPClient http;
     std::stringstream ss;
-    ss << MGMT_URL;
+    ss << mgmtServerUrl;
     ss << "/register";
 
     StaticJsonDocument<200> doc;
@@ -106,7 +173,7 @@ void registerBoard() {
  */
 std::string getNFDIP() {
     HTTPClient http;
-    http.begin(*wifiClient, (std::string(MGMT_URL) + std::string("/settingsApi")).c_str());
+    http.begin(*wifiClient, (mgmtServerUrl + std::string("/settingsApi")).c_str());
 
     int responseCode = http.GET();
 
@@ -184,6 +251,7 @@ void setup() {
     }
 
     enableAndConnectToWifi();
+    mgmtServerUrl = searchForManagementServerURL();
 
     LOG_INFO("nfdc face create udp4://%s:6363", ipToString().c_str());
 
