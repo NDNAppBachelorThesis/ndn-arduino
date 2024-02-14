@@ -17,7 +17,7 @@ public:
     float calculateLinkQuality();
 
     uint64_t lastAddTime = 0;
-    RingBuffer<8> timestampBuffer;
+    RingBuffer<32> timestampBuffer;
 };
 
 
@@ -29,12 +29,13 @@ public:
     void receiveFromDevice(uint64_t deviceId, uint64_t timestamp);
     float linkQuality(uint64_t deviceId);
 
+    std::unordered_map<uint64_t, LinkQuality*> qualityMap;
+
 private:
     void cleanQualityMap();
 
     ndnph::port::Clock::Time nextPurgeTime;
     LinkQuality* ensureDeviceExists(uint64_t deviceId);
-    std::unordered_map<uint64_t, LinkQuality*> qualityMap;
 };
 
 

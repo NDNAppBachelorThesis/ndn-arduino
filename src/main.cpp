@@ -11,8 +11,9 @@
 #include "sensors/dht11.h"
 #include "servers/TempHumidServer.h"
 #include "servers/DiscoveryServer.h"
-#include "servers/LinkQualityServer.h"
 #include "servers/UltrasonicServer.h"
+#include "servers/LinkQualityCheckServer.h"
+#include "servers/LinkQualityServer.h"
 
 
 #define DHT_SENSOR_PIN                  16
@@ -36,9 +37,12 @@ TempHumidServer *tempServer = nullptr;
 UltrasonicServer *ultrasonicServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
-LinkQualityServer linkQualityServer(face, &linkQualityStore);
-//LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
-//                                                                      "/linkquality").c_str()));
+LinkQualityCheckServer linkQualityCheckServer(face, &linkQualityStore);
+LinkQualityServer linkQualityServer(
+        face,
+        &linkQualityStore,
+        ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/linkquality").c_str())
+);
 
 IPAddress getBroadcastIP() {
     auto subnetMask = WiFi.subnetMask();
@@ -64,7 +68,7 @@ std::string searchForManagementServerURL() {
 
     // Send data
     udp.beginPacket(getBroadcastIP(), 32200);
-    udp.write((uint8_t*) message.c_str(), message.length());
+    udp.write((uint8_t *) message.c_str(), message.length());
     udp.endPacket();
 
     udp.flush();
@@ -87,7 +91,7 @@ std::string searchForManagementServerURL() {
         readCnt += udp.readBytes(&buffer[readCnt], min(remainingSize - (int) readCnt, available));
 
         if (readCnt >= 4) {
-            remainingSize = 4 + *reinterpret_cast<int*>(buffer);
+            remainingSize = 4 + *reinterpret_cast<int *>(buffer);
         }
 
         if (readCnt == remainingSize) {
@@ -105,7 +109,7 @@ std::string searchForManagementServerURL() {
 
     std::cout << "Received MGMT server IP: " << &buffer[4] << ":3000" << std::endl;
 
-    return "http://" + std::string((const char*) &buffer[4]) + ":3000";
+    return "http://" + std::string((const char *) &buffer[4]) + ":3000";
 }
 
 /**

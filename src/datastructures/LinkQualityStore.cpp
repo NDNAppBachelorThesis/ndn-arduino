@@ -70,6 +70,7 @@ void LinkQualityStore::cleanQualityMap() {
     }
 
     for (const auto &item: toRemove) {
+        delete qualityMap[item];
         qualityMap.erase(item);
     }
 

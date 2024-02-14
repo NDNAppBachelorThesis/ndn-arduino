@@ -14,12 +14,12 @@ bool DiscoveryServer::processNack(ndnph::Nack nack) {
     return false;
 }
 
-bool DiscoveryServer::shouldRespondToDiscovery(const ndnph::Name& name) {
+bool DiscoveryServer::shouldRespondToDiscovery(const ndnph::Name &name) {
     uint64_t deviceId = ESP.getEfuseMac();
     byte deviceIdBuffer[8];
     uint64ToByte(deviceIdBuffer, deviceId);
 
-    for (auto comp : name.slice(2)) {
+    for (auto comp: name.slice(2)) {
         if (comp.length() != 8) {
             continue;
         }
@@ -41,37 +41,39 @@ bool DiscoveryServer::processInterest(ndnph::Interest interest) {
     LOG_INFO("Received interest in DiscoveryServer");
 
     if (!shouldRespondToDiscovery(name)) {
-        LOG_INFO("Skipping interest. Already answered it.");
+        LOG_INFO("  -> Already answered. Skipping!");
         return false;
     }
 
-    LOG_INFO("Processing %s", nameToString(&name).c_str());
+    LOG_INFO("  -> Processing it.");
 
     ndnph::StaticRegion<1024> region;
     ndnph::Data data = region.create<ndnph::Data>();
     NDNPH_ASSERT(!!data);
-    data.setName(interest.getName().append(region,ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str())));
+    data.setName(interest.getName()
+                         .append(region, ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str()))
+                         .append(region, ndnph::Component::parse(region, std::to_string(0).c_str()))
+    );
     // DO NOT REDUCE TO 0!!! This will, for whatever reason, cause the device to not receive any responses
-    data.setFreshnessPeriod(10);     // Make sure we always use the newest requests
-
-    std::queue<std::string> qu(std::deque<std::string>(250));
+    data.setFreshnessPeriod(100);     // Make sure we always use the newest requests
 
     // Build response message
     std::vector<int> elementLengths;
-    std::transform(providedResources.begin(), providedResources.end(), std::back_inserter(elementLengths), [](const std::string& e) {
-        return e.length() + 1;   // +1 for additional 0-byte
-    });
+    std::transform(providedResources.begin(), providedResources.end(), std::back_inserter(elementLengths),
+                   [](const std::string &e) {
+                       return e.length() + 1;   // +1 for additional 0-byte
+                   });
     auto sum = std::accumulate(elementLengths.begin(), elementLengths.end(), 0);
 
     char buffer[sum];
     size_t arrayOffset = 0;
 
-    for (const auto& res : providedResources) {
+    for (const auto &res: providedResources) {
         std::strcpy(buffer + arrayOffset, res.c_str());
         arrayOffset += res.length() + 1;
     }
 
-    data.setContent(ndnph::tlv::Value((uint8_t*) buffer, sum));
+    data.setContent(ndnph::tlv::Value((uint8_t *) buffer, sum));
 
     reply(data.sign(m_signer));
     return true;
