@@ -23,7 +23,7 @@ void LinkQualityServer::loop() {
 
 void LinkQualityServer::sendLinkQualityPacket() {
     LOG_INFO("Sending link quality packet.");
-    auto interestNameStr = "/esp/linkqualityhandler/" + std::to_string(deviceId);
+    auto interestNameStr = "/esp/linkqualitycheck/" + std::to_string(deviceId);
     ndnph::StaticRegion<1024> region;
     auto name = ndnph::Name::parse(region, interestNameStr.c_str());
     NDNPH_ASSERT(!!name);
@@ -39,94 +39,47 @@ void LinkQualityServer::sendLinkQualityPacket() {
     interest.setMustBeFresh(true);
     interest.setLifetime(1000);
     interest.setNonce(generateNonce()); // Must set nonce!
+    interest.setHopLimit(10);
 
     if (!send(interest)) {
         LOG_INFO("  -> Failed");
         return;
     }
-
-    // Make sure the counter doesn't overflow
-    if (sentPackagesCnt++ > 2000) {
-        sentPackagesCnt /= 2;
-        receivedResponsesCnt /= 2;
-    }
-
 }
 
 bool LinkQualityServer::processData(ndnph::Data data) {
-    auto currentTime = esp_timer_get_time() / 1000;
-    auto delta = currentTime - this->lastSendTime;
-    durationBuffer.add(delta);
-
-    LOG_INFO("LinkQualityServer delay: %d", delta);
-    receivedResponsesCnt++;
+    LOG_INFO("LinkQualityServer response.");
     return true;
 }
 
 
 bool LinkQualityServer::processInterest(ndnph::Interest interest) {
     const auto &name = interest.getName();
-    if (!m_prefix.isPrefixOf(name)) {
+    ndnph::StaticRegion<1024> region;
+    auto prefix = ndnph::Name::parse(region, "/esp/linkqualitycheck");
+    if (!prefix.isPrefixOf(name)) {
         return false;
     }
-    LOG_INFO("Received interest in LinkQualityServer");
 
-    ndnph::StaticRegion<1024> region;
-    ndnph::Data data = region.create<ndnph::Data>();
-    NDNPH_ASSERT(!!data);
-    data.setName(name);
-    data.setFreshnessPeriod(1000);
+    LOG_INFO("Received interest for LinkQualityServer");
+    auto idComponent = name[2];
 
-    byte buffer[4];
-    floatToByte(buffer, calculateLinkQuality());
-    data.setContent(ndnph::tlv::Value(buffer, 4));
+    char buffer[idComponent.length() + 1];
+    std::memset(buffer, 0, idComponent.length() + 1);
+    std::memcpy(buffer, idComponent.value(), idComponent.length());
+    auto sourceDeviceId = std::stoull(std::string(buffer));
 
-    reply(data.sign(m_signer));
+
+    auto timeComponent = name[3];
+    auto timestamp = bytesToUint64((byte*) timeComponent.value());
+    std::cout << "TS: " << timestamp << std::endl;
+
+    linkQualityStore->receiveFromDevice(sourceDeviceId, timestamp);
+    std::cout << "  quality: " << linkQualityStore->linkQuality(sourceDeviceId) << std::endl;
+
     return true;
 }
 
-
-float LinkQualityServer::calculateLinkQuality() {
-    uint8_t base;
-    auto averagePing = durationBuffer.calculateAverage();
-
-    if (averagePing <= 25) {
-        base = 100;
-    } else if (averagePing <= 30) {
-        base = 95;
-    } else if (averagePing <= 40) {
-        base = 92;
-    } else if (averagePing <= 50) {
-        base = 90;
-    } else if (averagePing <= 80) {
-        base = 80;
-    } else if (averagePing <= 100) {
-        base = 75;
-    } else if (averagePing <= 150) {
-        base = 70;
-    } else if (averagePing <= 200) {
-        base = 60;
-    } else if (averagePing <= 350) {
-        base = 50;
-    } else if (averagePing <= 300) {
-        base = 40;
-    } else if (averagePing <= 400) {
-        base = 30;
-    } else if (averagePing <= 500) {
-        base = 20;
-    } else {
-        base = 10;
-    }
-
-    float responseRatio;
-    if (sentPackagesCnt == 0) {
-        responseRatio = 1.0;
-    } else {
-        responseRatio = (receivedResponsesCnt / (float) sentPackagesCnt);
-    }
-
-    return base * responseRatio;
-}
 
 
 uint32_t LinkQualityServer::generateNonce() {

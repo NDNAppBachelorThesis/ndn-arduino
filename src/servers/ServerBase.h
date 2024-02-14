@@ -10,6 +10,7 @@
 #include <ndnph/port/clock/port.hpp>
 #include <functional>
 #include <utility>
+#include <iostream>
 
 class ServerBase : public ndnph::PacketHandler {
 public:

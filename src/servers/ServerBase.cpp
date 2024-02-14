@@ -8,6 +8,7 @@
 ServerBase::~ServerBase() = default;
 
 void ServerBase::loop() {
+    return;
     auto now = ndnph::port::Clock::now();
     if (ndnph::port::Clock::isBefore(now, m_next)) {
         return;

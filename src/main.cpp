@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include <sstream>
 #include "libs/ArduinoJson.h"
+#include "datastructures/LinkQualityStore.h"
 #include "utils/wifi_utils.h"
 #include "utils/WifiClientFixed.h"
 #include "utils/Logger.h"
@@ -19,10 +20,9 @@
 #define ULTRASONIC_SENSOR_ECHO_PIN      39
 
 
-
 WifiClientFixed *wifiClient = new WifiClientFixed();
 const uint64_t deviceId = ESP.getEfuseMac();
-std::string mgmtServerUrl = "";
+std::string mgmtServerUrl;
 HttpUpdater httpUpdater;
 
 ndnph::StaticRegion<1024> region;
@@ -30,12 +30,15 @@ std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport(udpBuffer);
 ndnph::Face face(transport);
 
+LinkQualityStore linkQualityStore;
+
 TempHumidServer *tempServer = nullptr;
 UltrasonicServer *ultrasonicServer = nullptr;
 
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
-LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
-                                                                      "/linkquality").c_str()));
+LinkQualityServer linkQualityServer(face, &linkQualityStore);
+//LinkQualityServer linkQualityServer(face, ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) +
+//                                                                      "/linkquality").c_str()));
 
 IPAddress getBroadcastIP() {
     auto subnetMask = WiFi.subnetMask();
