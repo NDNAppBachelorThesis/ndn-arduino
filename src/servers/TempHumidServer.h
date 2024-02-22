@@ -10,6 +10,9 @@
 #include "servers/ServerBase.h"
 #include "sensors/dht11.h"
 
+/**
+ * NDN sensor server for the DHT11 temperature / humidity sensor
+ */
 class TempHumidServer : public ServerBase {
 public:
     explicit TempHumidServer(ndnph::Face &face, ndnph::Name prefix, int dhtPort) :

@@ -12,6 +12,9 @@
 #include <utility>
 #include <iostream>
 
+/**
+ * The base class for all NDN sensor servers
+ */
 class ServerBase : public ndnph::PacketHandler {
 public:
     ServerBase(ndnph::Face &face, ndnph::Name namePrefix, int autoSendDelay) :
@@ -23,9 +26,15 @@ public:
     ~ServerBase() override = 0;
 
 protected:
+    /**
+     * Gathers the sensor data and sends the periodic measurements to fiware-orion
+     */
     virtual void sendAllAutoInterests() = 0;
-    bool sendAutoInterest(const std::string& nameSuffix, const std::function<void(byte*)>& getData);
+    /**
+     * Returns the servers name. Should be the class name.
+     */
     virtual std::string getServiceName() = 0;
+    bool sendAutoInterest(const std::string& nameSuffix, const std::function<void(byte*)>& getData);
     uint32_t generateNonce();
 
 private:

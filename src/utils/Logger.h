@@ -14,15 +14,15 @@
 #define LOG_ERROR(...) Logger::instance.logError(__VA_ARGS__)
 
 /**
- * Convert ndnph::Name object to string.
- * Can't use type ndnph::Name because including esp8266ndn.h here will break everything.
+ * A custom logger, which also writes the log lines to the LogBuffer.
  */
-std::string nameToString(const void* name);
-
 class Logger {
 public:
     Logger() = default;
 
+    /**
+     * Formats the received data into a nice log line
+     */
     template<typename Msg_t, typename... Args>
     void _logHelper(FILE *output, const char *prefix, Msg_t rawMsg, Args... args) {
         char* msg = (char*) rawMsg;

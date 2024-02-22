@@ -5,7 +5,9 @@
 #ifndef NDN_ARDUINO_ULTRASONIC_H
 #define NDN_ARDUINO_ULTRASONIC_H
 
-
+/**
+ * Class for interacting with the ultrasonic sensor
+ */
 class Ultrasonic {
 public:
     explicit Ultrasonic(int triggerPin, int echoPin): triggerPin(triggerPin), echoPin(echoPin) {}

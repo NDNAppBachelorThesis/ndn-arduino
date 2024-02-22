@@ -1,3 +1,5 @@
+@echo off
+
 echo "Login into container registry"
 docker login -u derteufelqwe
 echo "Login successful."

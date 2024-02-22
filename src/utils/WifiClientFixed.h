@@ -8,7 +8,7 @@
 #include <WiFi.h>
 
 /**
- * Normal wifiClient has a bug where it prints a lot of meaningless error messages. This fixes it
+ * Normal WifiClient has a bug where it prints a lot of meaningless error messages. This fixes it
  * Source: https://github.com/espressif/arduino-esp32/issues/6129#issuecomment-1418051304
  */
 class WifiClientFixed : public WiFiClient {

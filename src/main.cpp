@@ -33,9 +33,6 @@ ndnph::Face face(transport);
 
 LinkQualityStore linkQualityStore;
 
-TempHumidServer *tempServer = nullptr;
-UltrasonicServer *ultrasonicServer = nullptr;
-
 DiscoveryServer discoveryServer(face, ndnph::Name::parse(region, ("/esp/discovery")));
 LinkQualityCheckServer linkQualityCheckServer(face, &linkQualityStore);
 LinkQualityServer linkQualityServer(
@@ -44,6 +41,16 @@ LinkQualityServer linkQualityServer(
         ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/linkquality").c_str())
 );
 
+/*
+ * List all possible sensor servers here.
+ */
+TempHumidServer *tempServer = nullptr;
+UltrasonicServer *ultrasonicServer = nullptr;
+
+
+/**
+ * Calculates the broadcast IP based of the current network config.
+ */
 IPAddress getBroadcastIP() {
     auto subnetMask = WiFi.subnetMask();
     auto gatewayIP = WiFi.gatewayIP();
@@ -56,6 +63,10 @@ IPAddress getBroadcastIP() {
     return broadcastIP;
 }
 
+/**
+ * Uses an UDP broadcast message on port 32200 to obtain the IP of the management server.
+ * Restarts the device if unsuccessful
+ */
 std::string searchForManagementServerURL() {
     WiFiUDP udp;
 
@@ -113,8 +124,8 @@ std::string searchForManagementServerURL() {
 }
 
 /**
+ * Converts an IP to a string.
  * The Function for the IpAddress class just doesn't work
- * @return
  */
 std::string ipToString() {
     auto ip = WiFi.localIP();
@@ -205,10 +216,16 @@ std::string getNFDIP() {
 }
 
 
+/**
+ * Plugged-detection for the temperature / humidity sensor
+ */
 bool isTempSensorPlugged() {
     return digitalRead(DHT_SENSOR_PIN) != 0;
 }
 
+/**
+ * Plugged-detection for the ultrasonic sensor
+ */
 bool isUltrasonicSensorPlugged() {
     digitalWrite(ULTRASONIC_SENSOR_TRIGGER_PIN, LOW);
     delayMicroseconds(2);
@@ -220,21 +237,28 @@ bool isUltrasonicSensorPlugged() {
 }
 
 
+/**
+ * Utility function to get the commonly used Name for sensor data
+ */
 ndnph::Name getNdnNameForData() {
     return ndnph::Name::parse(region, ("/esp/" + std::to_string(deviceId) + "/data").c_str());
 }
 
 
+/**
+ * Arduinos setup function
+ */
 void setup() {
     Serial.begin(115200);
     Serial.println();
     esp8266ndn::setLogOutput(Serial);
 
-    // --- Configure possible pins ---
+    // --- Configure possibly used pins ---
     pinMode(DHT_SENSOR_PIN, INPUT);
     pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
     pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
 
+    // --- Check for plugged sensors ---
     if (isTempSensorPlugged()) {
         LOG_INFO("[HW CONFIG] Using Temp/Humid Sensor.");
         tempServer = new TempHumidServer(
@@ -257,6 +281,7 @@ void setup() {
         LOG_INFO("[HW CONFIG] No sensor configured.");
     }
 
+    // --- Connect to Wi-Fi and NDN ---
     enableAndConnectToWifi();
     mgmtServerUrl = searchForManagementServerURL();
 
@@ -282,17 +307,19 @@ void setup() {
     registerBoard();
     httpUpdater.setup();
 
-    pinMode(ULTRASONIC_SENSOR_TRIGGER_PIN, OUTPUT);
-    pinMode(ULTRASONIC_SENSOR_ECHO_PIN, INPUT);
-
     LOG_INFO("Setup done.");
 }
 
 
+// Data for ping / cpu usage
 uint16_t pingCounter = 0;
 long long cycleSum = 0;
 long cycleCnt = 0;
 
+
+/**
+ * Arduino loop function
+ */
 void loop() {
     auto cnt1 = ESP.getCycleCount();
 
@@ -303,6 +330,7 @@ void loop() {
     cycleSum += (cnt2 - cnt1);
     cycleCnt++;
 
+    // Ping the management server periodically
     if (++pingCounter % 2500 == 0) {
         sendPing();
 //        std::cout << "Average cycle count: " << (cycleSum / cycleCnt) << std::endl;

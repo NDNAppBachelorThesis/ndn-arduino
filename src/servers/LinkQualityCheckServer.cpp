@@ -39,7 +39,7 @@ void LinkQualityCheckServer::sendLinkQualityPacket() {
     interest.setMustBeFresh(true);
     interest.setLifetime(1000);
     interest.setNonce(generateNonce()); // Must set nonce!
-    interest.setHopLimit(2);    // NFD and NFD handler
+    interest.setHopLimit(2);    // NFD consumes one hop
 
     if (!send(interest)) {
         LOG_INFO("  -> Failed");
@@ -64,12 +64,13 @@ bool LinkQualityCheckServer::processInterest(ndnph::Interest interest) {
 //    LOG_INFO("Received interest for LinkQualityCheckServer");
     auto idComponent = name[2];
 
+    // Extract senders device id
     char buffer[idComponent.length() + 1];
     std::memset(buffer, 0, idComponent.length() + 1);
     std::memcpy(buffer, idComponent.value(), idComponent.length());
     auto sourceDeviceId = std::stoull(std::string(buffer));
 
-
+    // Extract senders timestamp
     auto timeComponent = name[3];
     auto timestamp = bytesToUint64((byte*) timeComponent.value());
 

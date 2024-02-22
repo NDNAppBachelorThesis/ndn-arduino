@@ -14,6 +14,10 @@
 #include "datastructures/LinkQualityStore.h"
 
 
+/**
+ * The NFD server, which periodically sends interest packets to the adjacent devices so they can determine their link
+ * quality
+ */
 class LinkQualityCheckServer : public ndnph::PacketHandler {
 public:
     LinkQualityCheckServer(ndnph::Face &face, LinkQualityStore *linkQualityStore) :
@@ -29,8 +33,14 @@ private:
 
     bool processData(ndnph::Data data) override;
 
+    /**
+     * Process received interest packets from adjacent devices
+     */
     bool processInterest(ndnph::Interest interest) override;
 
+    /**
+     * Send interest packets to adjacent devices
+     */
     void sendLinkQualityPacket();
 
     uint32_t generateNonce();

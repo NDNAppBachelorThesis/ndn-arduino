@@ -10,6 +10,9 @@
 #include "servers/ServerBase.h"
 #include "sensors/Ultrasonic.h"
 
+/**
+ * NDN sensor server for the ultrasonic sensor
+ */
 class UltrasonicServer : public ServerBase {
 public:
     explicit UltrasonicServer(ndnph::Face &face, ndnph::Name prefix, int sensorTriggerPin, int sensorEchoPin) :

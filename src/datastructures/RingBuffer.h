@@ -10,6 +10,10 @@
 #include <iostream>
 
 
+/**
+ * A ringbuffer, which acts like a queue with a fixed size where the oldest element gets evicted when the capacity is
+ * full. Focuses on performance.
+ */
 template<uint32_t SIZE>
 class RingBuffer {
 public:
@@ -22,6 +26,9 @@ public:
         position = (position + 1) % SIZE;
     }
 
+    /**
+     * Returns how many entries of the capacity are actually used.
+     */
     uint32_t usedSize() {
         uint32_t size = 0;
 
@@ -32,6 +39,9 @@ public:
         return size;
     }
 
+    /**
+     * Returns the oldest element
+     */
     uint64_t first() {
         if (usedSize() != SIZE) {
             return data[0];
@@ -39,6 +49,9 @@ public:
         return data[position];
     }
 
+    /**
+     * Returns the newest element
+     */
     uint64_t last() {
         if (position == 0) {
             return data[SIZE - 1];
@@ -46,20 +59,9 @@ public:
         return data[position - 1];
     }
 
-    uint64_t calculateAverage() {
-        uint64_t res = 0;
-        uint32_t count = 0;
-
-        for (size_t i = 0; i < SIZE; i++) {
-            if (data[i] != 0) {
-                res += data[i];
-                count++;
-            }
-        }
-
-        return res / count;
-    }
-
+    /**
+     * Calculates the average delay between two received timestamps
+     */
     uint64_t calculateAverageDelay() {
         auto tsLast = last();
         auto tsFirst = first();

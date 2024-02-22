@@ -23,6 +23,8 @@ bool LinkQualityServer::processInterest(ndnph::Interest interest) {
     byte buffer[12 * mapSize];  // uint64_t and float for each device
     size_t i = 0;
 
+    // For each stored link quality first write the device id then the quality in a 12 byte long buffer
+    // (8 byte for the device ID and 4 for the quality)
     for (const auto &item: linkQualityStore->qualityMap) {
         auto devId = item.first;
         auto quality = item.second->calculateLinkQuality();

@@ -10,7 +10,7 @@
 #include <queue>
 
 bool DiscoveryServer::processNack(ndnph::Nack nack) {
-    LOG_ERROR("Received NACK");
+    LOG_ERROR("DiscoveryServer received NACK");
     return false;
 }
 
@@ -19,6 +19,7 @@ bool DiscoveryServer::shouldRespondToDiscovery(const ndnph::Name &name) {
     byte deviceIdBuffer[8];
     uint64ToByte(deviceIdBuffer, deviceId);
 
+    // Check for each component in the name if it includes the devices id
     for (auto comp: name.slice(2)) {
         if (comp.length() != 8) {
             continue;
@@ -52,6 +53,7 @@ bool DiscoveryServer::processInterest(ndnph::Interest interest) {
     NDNPH_ASSERT(!!data);
     data.setName(interest.getName()
                          .append(region, ndnph::Component::parse(region, std::to_string(ESP.getEfuseMac()).c_str()))
+                                 // Identify as ESP32 board
                          .append(region, ndnph::Component::parse(region, std::to_string(0).c_str()))
     );
     // DO NOT REDUCE TO 0!!! This will, for whatever reason, cause the device to not receive any responses

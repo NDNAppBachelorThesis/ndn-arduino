@@ -12,6 +12,9 @@
 #include <vector>
 #include "datastructures/LinkQualityStore.h"
 
+/**
+ * NDN server to provide the gathered link qualities to the users
+ */
 class LinkQualityServer : public ndnph::PacketHandler {
 public:
     LinkQualityServer(ndnph::Face &face, LinkQualityStore *linkQualityStore, ndnph::Name prefix) :

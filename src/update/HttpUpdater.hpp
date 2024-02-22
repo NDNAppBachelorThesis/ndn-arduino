@@ -8,11 +8,17 @@
 #include <WebServer.h>
 #include <Update.h>
 
+/**
+ * The HTTP server for live logs and OTA updates
+ */
 class HttpUpdater {
 public:
     HttpUpdater() = default;
 
     void setup();
+    /**
+     * Runs the HTTP server. This can only be done after the setup finished.
+     */
     void run() const {
         assert(setupDone);
         server.handleClient();
