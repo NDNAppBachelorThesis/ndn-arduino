@@ -39,7 +39,7 @@ void LinkQualityCheckServer::sendLinkQualityPacket() {
     interest.setMustBeFresh(true);
     interest.setLifetime(1000);
     interest.setNonce(generateNonce()); // Must set nonce!
-    interest.setHopLimit(10);
+    interest.setHopLimit(2);    // NFD and NFD handler
 
     if (!send(interest)) {
         LOG_INFO("  -> Failed");

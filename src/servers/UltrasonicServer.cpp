@@ -1,7 +1,3 @@
-//
-// Created by arne- on 11.12.2023.
-//
-
 #include "UltrasonicServer.h"
 #include "utils/unit_conversions.h"
 

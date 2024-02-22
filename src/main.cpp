@@ -17,8 +17,8 @@
 
 
 #define DHT_SENSOR_PIN                  16
-#define ULTRASONIC_SENSOR_TRIGGER_PIN   38
-#define ULTRASONIC_SENSOR_ECHO_PIN      39
+#define ULTRASONIC_SENSOR_TRIGGER_PIN   17
+#define ULTRASONIC_SENSOR_ECHO_PIN      18
 
 
 WifiClientFixed *wifiClient = new WifiClientFixed();

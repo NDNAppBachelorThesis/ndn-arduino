@@ -39,7 +39,7 @@ protected:
     const ndnph::Name namePrefix;
     const ndnph::PrivateKey &m_signer;
     ndnph::port::Clock::Time m_next;    // Timer for automatically sending messages to Fiware-Orion
-    const int autoSendDelay;            // Delay in ms for the auto sends to quantumleap
+    const int autoSendDelay;            // Delay in ms for the auto sends to Fiware-Orion
     const uint64_t deviceId = ESP.getEfuseMac();
 };
 

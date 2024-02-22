@@ -3,3 +3,7 @@
 
 # Password files
 wifi.ini
+
+# Generated files
+scripts/partitions.img
+scripts/partitions_1.csv

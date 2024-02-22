@@ -61,16 +61,16 @@ public:
     }
 
     uint64_t calculateAverageDelay() {
-        auto l = last();
-        auto f = first();
-        auto s = usedSize();
+        auto tsLast = last();
+        auto tsFirst = first();
+        auto size = usedSize();
 
-        if (s == 1) {
-            return l - f;
+        if (size == 1) {
+            return tsLast - tsFirst;
         }
 
-        // Must subtract 1 because I want the average of the differences
-        return (l - f) / (s - 1);
+        // Must subtract 1 because I want the average of the differences, not the overall average
+        return (tsLast - tsFirst) / (size - 1);
     }
 
 private:

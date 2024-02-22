@@ -8,7 +8,6 @@
 ServerBase::~ServerBase() = default;
 
 void ServerBase::loop() {
-    return;
     auto now = ndnph::port::Clock::now();
     if (ndnph::port::Clock::isBefore(now, m_next)) {
         return;
@@ -18,7 +17,7 @@ void ServerBase::loop() {
 }
 
 bool ServerBase::sendAutoInterest(const std::string& nameSuffix, const std::function<void(byte*)>& getData) {
-    LOG_INFO("Sending data to Fiware-Orion for %s", getServiceName().c_str());
+//    LOG_INFO("Sending data to Fiware-Orion for %s", getServiceName().c_str());
 
     auto interestNameStr = "/esp/fiware/" + std::to_string(deviceId) + "/" + nameSuffix;
     ndnph::StaticRegion<1024> region;

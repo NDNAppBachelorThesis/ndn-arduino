@@ -55,7 +55,7 @@ bool DiscoveryServer::processInterest(ndnph::Interest interest) {
                          .append(region, ndnph::Component::parse(region, std::to_string(0).c_str()))
     );
     // DO NOT REDUCE TO 0!!! This will, for whatever reason, cause the device to not receive any responses
-    data.setFreshnessPeriod(100);     // Make sure we always use the newest requests
+    data.setFreshnessPeriod(1000);     // Make sure we always use the newest requests
 
     // Build response message
     std::vector<int> elementLengths;
