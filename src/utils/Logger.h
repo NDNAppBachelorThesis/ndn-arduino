@@ -52,7 +52,7 @@ public:
     }
 
     static Logger instance;
-    LogBuffer buffer = 512;
+    LogBuffer buffer{512};
 };
 
 

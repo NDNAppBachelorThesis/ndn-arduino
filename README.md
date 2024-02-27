@@ -18,7 +18,9 @@ access the build artifacts
 7. Go to ``C:\Users\<username>\.platformio\packages\framework-arduinoespressif32\libraries`` and clone
    `https://github.com/yoursunny/esp8266ndn.git` and `https://github.com/yoursunny/NDNph.git`
 8. Configure WIFI
-9. From the CLion PlatformIO toolbar (top right) run `Upload and Monitor`
+9. From the CLion PlatformIO toolbar (top right) run `Build Filesystem Image`
+10. From the CLion PlatformIO toolbar run `Upload Filesystem Image`
+11. From the CLion PlatformIO toolbar run `Upload and Monitor`
 
 # Installing libraries
 
@@ -31,7 +33,7 @@ To prevent confidential WIFI credentials from getting pushed to github, you have
 in the root directory, which contains the following text
 
 ```ini
-[wifiClient]
+[wifi]
 ssid = your-wifi-ssid
 password = your-super-secret-wifi-password-nobody-should-ever-see-except-you-of-course
 ```
@@ -67,9 +69,11 @@ If you want to build the docker image yourself just run ``docker/build_and_uploa
 the repository where the image is pushed to.
 
 # Partitions
+
 To be able to utilize the available flash of the ESP-WROOM-32 boards more effectively its partition must be modified.
 Before you can flash the firmware for the first time, you have to build and flash the new partition table. It's defined
 in ``partitions/wroom_large.csv``. For this do the following steps:
+
 0. Ensure you have the esp32dev profile selected (as this must only be done for the ESP-WROOM-32 boards)
 1. Execute the platformio job ``Build Filesystem Image``
 2. Execute the platformio job ``Upload Filesystem Image``
