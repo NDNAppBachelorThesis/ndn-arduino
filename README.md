@@ -36,6 +36,8 @@ in the root directory, which contains the following text
 [wifi]
 ssid = your-wifi-ssid
 password = your-super-secret-wifi-password-nobody-should-ever-see-except-you-of-course
+ssid2 = second-wifi
+password2 = second-super-secret-wifi-password-nobody-should-ever-see-except-you-of-course
 ```
 
 # A list of useful NFD / nfdc Commands
