@@ -3,7 +3,7 @@
 
 
 bool _tryConnectToWiFi(const char *WIFI_SSID, const char *WIFI_PASS) {
-    LOG_INFO("[WIFI] Trying to connect to wifi network %s...", WIFI_SSID);
+    LOG_INFO("[WIFI] Trying to connect to wifi network '%s'...", WIFI_SSID);
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
@@ -14,6 +14,10 @@ bool _tryConnectToWiFi(const char *WIFI_SSID, const char *WIFI_PASS) {
         return false;
     }
 
+    // Wait for connection to start
+    delay(1000);
+    LOG_INFO("[WIFI] Connected to wifi network '%s'", WIFI_SSID);
+
     return true;
 }
 
@@ -23,20 +27,14 @@ bool _tryConnectToWiFi(const char *WIFI_SSID, const char *WIFI_PASS) {
  */
 void enableAndConnectToWifi() {
     if (_tryConnectToWiFi(WLAN_SSID, WLAN_PASSWORD)) {
-        // Wait for connection to start
-        delay(1000);
-        LOG_INFO("[WIFI] Connected to wifi network %s", WLAN_SSID);
         return;
     }
 
     LOG_INFO("Connection failed. Trying next network...");
     WiFi.disconnect(true, true);
-    delay(100);
+    delay(250);
 
     if (_tryConnectToWiFi(WLAN_SSID2, WLAN_PASSWORD2)) {
-        // Wait for connection to start
-        delay(1000);
-        LOG_INFO("[WIFI] Connected to wifi network %s", WLAN_SSID2);
         return;
     }
 

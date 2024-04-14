@@ -6,6 +6,8 @@ jobs:
   to_gitlab:
     name: "Mirror to Gitlab"
     runs-on: ubuntu-latest
+    # Job is currently disabled
+    if: false
     steps:
       - uses: actions/checkout@v3
         with:
